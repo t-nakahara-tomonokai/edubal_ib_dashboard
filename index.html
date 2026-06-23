@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDUBAL Instagram ダッシュボード ｜ フォロワー獲得</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#14213D; --ink-soft:#3A4A66; --paper:#FAF8F4; --card:#FFFFFF;
+    --signal:#E8502E; --signal-deep:#C53B1C; --signal-wash:#FCE9E2;
+    --slate:#5E7A9B; --slate-soft:#9DB0C4; --slate-wash:#EDF1F6;
+    --hair:#E8E2D7; --muted:#8A8579;
+    --font:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    font-variant-numeric:tabular-nums;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 22px 80px}
+  .num{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+
+  /* ---- header ---- */
+  header.top{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1.5px solid var(--ink)}
+  .brand .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--signal); font-weight:700}
+  .brand h1{margin:.18em 0 .1em; font-size:25px; font-weight:700; letter-spacing:-.01em}
+  .brand .meta{font-size:12.5px; color:var(--ink-soft)}
+  .brand .meta b{color:var(--ink); font-weight:600}
+  .controls{display:flex; align-items:center; gap:10px}
+  .controls label{font-size:11px; color:var(--ink-soft); letter-spacing:.04em}
+  select#month{
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--ink);
+    background:var(--card); border:1.5px solid var(--ink); border-radius:8px;
+    padding:8px 30px 8px 12px; cursor:pointer; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%2314213D'/></svg>");
+    background-repeat:no-repeat; background-position:right 11px center;
+  }
+  .reload{font-size:12px; color:var(--slate); border:1px dashed var(--slate-soft); border-radius:8px; padding:8px 12px; cursor:pointer; background:transparent; font-family:inherit}
+  .reload:hover{border-color:var(--slate); color:var(--ink)}
+  #file{display:none}
+
+  /* ---- section scaffolding ---- */
+  .sec{margin-top:34px}
+  .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:14px}
+  .sec-head .idx{font-size:11px; font-weight:700; color:var(--slate); letter-spacing:.1em}
+  .sec-head h2{margin:0; font-size:15.5px; font-weight:700; letter-spacing:.01em}
+  .sec-head .note{font-size:11.5px; color:var(--muted); margin-left:auto}
+
+  /* ---- hero KPI ---- */
+  .hero{background:var(--card); border:1px solid var(--hair); border-radius:16px; padding:26px 28px 22px; box-shadow:0 1px 0 rgba(20,33,61,.03)}
+  .hero-main{display:flex; align-items:flex-end; gap:34px; flex-wrap:wrap}
+  .kpi-follow .lab{font-size:12px; font-weight:700; letter-spacing:.04em; color:var(--signal); text-transform:uppercase}
+  .kpi-follow .big{font-size:74px; line-height:.92; font-weight:700; color:var(--signal); margin:.06em 0}
+  .kpi-follow .delta{font-size:13px; font-weight:600}
+  .delta.up{color:var(--signal-deep)} .delta.down{color:var(--slate)} .delta.flat{color:var(--muted)}
+  .meridian{flex:1 1 120px; height:1.5px; background:linear-gradient(90deg,var(--signal-wash),var(--hair)); margin-bottom:30px; min-width:60px}
+  .kpi-sub{display:flex; gap:30px; flex-wrap:wrap}
+  .kpi-sub .item .lab{font-size:11.5px; color:var(--ink-soft); font-weight:600}
+  .kpi-sub .item .v{font-size:27px; font-weight:700; line-height:1.1; margin-top:2px}
+  .kpi-sub .item .d{font-size:11.5px; font-weight:600; margin-top:1px}
+  .hero-foot{display:flex; gap:34px; flex-wrap:wrap; margin-top:22px; padding-top:18px; border-top:1px solid var(--hair)}
+  .hero-foot .item .lab{font-size:11px; color:var(--muted); font-weight:600}
+  .hero-foot .item .v{font-size:18px; font-weight:700; color:var(--ink-soft)}
+
+  /* ---- plan hints ---- */
+  .plan{background:var(--ink); color:#fff; border-radius:14px; padding:20px 24px; margin-top:18px}
+  .plan h3{margin:0 0 6px; font-size:13px; letter-spacing:.06em; color:var(--signal); font-weight:700}
+  .plan ul{margin:8px 0 0; padding:0; list-style:none; display:grid; gap:9px}
+  .plan li{font-size:13.5px; line-height:1.5; padding-left:18px; position:relative; color:#E7ECF4}
+  .plan li::before{content:"→"; position:absolute; left:0; color:var(--signal); font-weight:700}
+  .plan li b{color:#fff}
+
+  /* ---- cards / charts ---- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .panel{background:var(--card); border:1px solid var(--hair); border-radius:14px; padding:18px 20px}
+  .panel h3{margin:0 0 4px; font-size:14px; font-weight:700}
+  .panel .sub{font-size:11.5px; color:var(--muted); margin-bottom:12px}
+  .chartbox{position:relative; height:260px}
+  .chartbox.tall{height:340px}
+
+  /* ---- table ---- */
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--hair); vertical-align:middle}
+  th{font-size:10.5px; letter-spacing:.06em; color:var(--muted); font-weight:700; text-transform:uppercase}
+  td.n,th.n{text-align:right; font-variant-numeric:tabular-nums}
+  td.cap{max-width:340px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rank{color:var(--signal); font-weight:700; width:22px}
+  .badge{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap}
+  .badge.reel{background:var(--signal-wash); color:var(--signal-deep)}
+  .badge.car{background:var(--slate-wash); color:var(--slate)}
+  .badge.img{background:#F0EEE8; color:var(--muted)}
+  td .fw{font-weight:700; color:var(--signal)}
+
+  .legend{display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft); margin-top:8px; flex-wrap:wrap}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+  #srcbar{display:flex; align-items:center; gap:10px; margin-top:10px; font-size:11.5px; color:var(--slate); flex-wrap:wrap}
+  #srcbar .reload{padding:4px 10px; font-size:11px}
+  footer{margin-top:40px; font-size:11px; color:var(--muted); line-height:1.7; border-top:1px solid var(--hair); padding-top:16px}
+  .drop-hint{outline:3px dashed var(--signal); outline-offset:-6px}
+
+  @media (max-width:760px){
+    .grid2{grid-template-columns:1fr}
+    .kpi-follow .big{font-size:58px}
+    .meridian{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Instagram Performance</div>
+      <h1>フォロワー獲得ダッシュボード</h1>
+      <div class="meta"><b id="acct">@edubal_ib</b> ・ 期間 <b id="range">—</b> ・ <b id="postcount">—</b>投稿</div>
+    </div>
+    <div class="controls">
+      <label for="month">表示する月</label>
+      <select id="month"></select>
+      <button class="reload" id="reloadBtn">CSVを手動で差し替え</button>
+      <input type="file" id="file" accept=".csv">
+    </div>
+  </header>
+
+  <div id="srcbar">
+    <span id="src">—</span>
+    <button id="refetchBtn" class="reload">↻ 最新を再取得</button>
+  </div>
+
+  <!-- 1. HERO -->
+  <section class="sec">
+    <div class="hero">
+      <div class="hero-main">
+        <div class="kpi-follow">
+          <div class="lab">獲得フォロワー</div>
+          <div class="big num" id="h-follow">—</div>
+          <div class="delta" id="h-follow-d">&nbsp;</div>
+        </div>
+        <div class="meridian"></div>
+        <div class="kpi-sub">
+          <div class="item">
+            <div class="lab">フォロー転換率<span style="font-weight:400;color:var(--muted)"> (フォロー÷リーチ)</span></div>
+            <div class="v num" id="h-cvr">—</div>
+            <div class="d" id="h-cvr-d">&nbsp;</div>
+          </div>
+          <div class="item">
+            <div class="lab">1投稿あたり獲得</div>
+            <div class="v num" id="h-per">—</div>
+            <div class="d" id="h-per-d">&nbsp;</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-foot">
+        <div class="item"><div class="lab">合計リーチ</div><div class="v num" id="h-reach">—</div></div>
+        <div class="item"><div class="lab">合計ビュー</div><div class="v num" id="h-views">—</div></div>
+        <div class="item"><div class="lab">平均エンゲージメント率</div><div class="v num" id="h-eng">—</div></div>
+        <div class="item"><div class="lab">投稿数</div><div class="v num" id="h-posts">—</div></div>
+      </div>
+    </div>
+
+    <div class="plan">
+      <h3>次月プランニングのヒント（選択中の期間から自動生成）</h3>
+      <ul id="plan-list"></ul>
+    </div>
+  </section>
+
+  <!-- 2. monthly trend -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">01</span><h2>月別フォロー獲得の推移</h2>
+      <span class="note">公開月コホート ／ 数値は累積（古い月ほど蓄積期間が長い）</span></div>
+    <div class="panel"><div class="chartbox" style="height:230px"><canvas id="trendChart"></canvas></div></div>
+  </section>
+
+  <!-- 3. type efficiency + day -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">02</span><h2>どこに投下するか：形式別と曜日別の獲得効率</h2></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>投稿形式別 1投稿あたり獲得フォロー</h3>
+        <div class="sub">フォロワー獲得は形式で大きく変わる。太い形式に寄せる判断材料。</div>
+        <div class="chartbox"><canvas id="typeChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>曜日別 平均獲得フォロー</h3>
+        <div class="sub">伸びる曜日に重要投稿を寄せる。バー上の小さい数字は投稿本数。</div>
+        <div class="chartbox"><canvas id="dayChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. scatter -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">03</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
+      <span class="note">右上＝広く届き、かつフォローに繋がった投稿。バブル大＝獲得数大</span></div>
+    <div class="panel">
+      <div class="chartbox tall"><canvas id="scatterChart"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--signal)"></i>リール</span>
+        <span><i style="background:var(--slate)"></i>カルーセル</span>
+        <span><i style="background:var(--slate-soft)"></i>画像</span>
+        <span style="color:var(--muted)">点線＝各軸の中央値（クリックでキャプション）</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. top posts -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">04</span><h2>獲得フォロー トップ投稿</h2>
+      <span class="note">伸びた話題を言語化して次月の企画に転用する</span></div>
+    <div class="panel" style="padding-top:8px">
+      <table>
+        <thead><tr><th></th><th>投稿（キャプション冒頭）</th><th>形式</th><th class="n">獲得<br>フォロー</th><th class="n">リーチ</th><th class="n">転換率</th><th class="n">保存</th></tr></thead>
+        <tbody id="top-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const SEED = [{"type": "IGリール動画", "publish": "03/27/2026 03:00", "views": 3599, "reach": 2149, "likes": 35, "shares": 4, "follows": 2, "comments": 0, "saves": 25, "cap": "こんにちは！EDUBALのKaiです。  自分はpre IBの段階で、その時の興味関心や指導教員を軸にIB科目を選びまし"}, {"type": "Instagramカルーセル", "publish": "03/25/2026 02:00", "views": 3439, "reach": 1013, "likes": 32, "shares": 5, "follows": 0, "comments": 1, "saves": 14, "cap": "コア科目や過去問について、IB経験者が後輩に伝えたいこととは？📚 今回は、EDUBALでインターンとして働く元IB生の先"}, {"type": "IGリール動画", "publish": "06/22/2026 02:00", "views": 4679, "reach": 3216, "likes": 49, "shares": 17, "follows": 7, "comments": 2, "saves": 32, "cap": "東大に受かる時間管理術とは！？  IBは時間管理が命！！ と分かりつつ、ついついスマホ見てしまいますよね📱 そんなIB生"}, {"type": "IGリール動画", "publish": "06/19/2026 02:00", "views": 8552, "reach": 5992, "likes": 77, "shares": 34, "follows": 11, "comments": 0, "saves": 50, "cap": "Paperに苦手意識を持っていませんか？  IBのPaperは自分のセンスで書いてはいけません🙅‍♂️ criteria"}, {"type": "IGリール動画", "publish": "06/18/2026 01:50", "views": 24645, "reach": 15280, "likes": 295, "shares": 47, "follows": 4, "comments": 2, "saves": 40, "cap": "🏫仙台育英学園秀光コース生徒インタビュー  秀光中学校から仙台育英学園高校の秀光コース（IB）に進学された伊原さんにお話"}, {"type": "Instagramカルーセル", "publish": "06/16/2026 22:11", "views": 6210, "reach": 2385, "likes": 94, "shares": 34, "follows": 15, "comments": 0, "saves": 168, "cap": "「IBの勉強、何から手をつければいいか迷ってない？」  教科書や授業だけだと、どうしても情報が足りない…って感じることあ"}, {"type": "IGリール動画", "publish": "06/15/2026 02:00", "views": 13775, "reach": 9926, "likes": 89, "shares": 30, "follows": 17, "comments": 1, "saves": 50, "cap": "🎤AICJ高等学校IBコース ＼現役IB生に聞いてみた／  今回は広島県にあるAICJ高等学校のIBコース 高校3年生の"}, {"type": "IGリール動画", "publish": "06/12/2026 02:00", "views": 28863, "reach": 20045, "likes": 192, "shares": 66, "follows": 22, "comments": 4, "saves": 115, "cap": "🌎学内の公用語は日本語とEnglish  ＼国内のIB校を取材／  広島県にあるAICJ高等学校を取材！  世界の名門大"}, {"type": "Instagram画像", "publish": "06/10/2026 00:03", "views": 1185, "reach": 611, "likes": 6, "shares": 0, "follows": 1, "comments": 0, "saves": 2, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagram画像", "publish": "06/10/2026 00:02", "views": 1412, "reach": 740, "likes": 9, "shares": 0, "follows": 0, "comments": 0, "saves": 3, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagram画像", "publish": "06/10/2026 00:02", "views": 1231, "reach": 587, "likes": 6, "shares": 0, "follows": 0, "comments": 0, "saves": 3, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagramカルーセル", "publish": "06/09/2026 18:57", "views": 3819, "reach": 1386, "likes": 15, "shares": 2, "follows": 1, "comments": 50, "saves": 16, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "IGリール動画", "publish": "06/08/2026 02:00", "views": 10168, "reach": 7299, "likes": 104, "shares": 41, "follows": 27, "comments": 0, "saves": 51, "cap": "🏫岡山大学を直撃取材  15年間で189名のIB生が入学した「岡山大学」。 EDUBAでは、岡山大学がIB生に選ばれる理"}, {"type": "IGリール動画", "publish": "06/05/2026 02:00", "views": 6445, "reach": 4417, "likes": 47, "shares": 3, "follows": 4, "comments": 0, "saves": 15, "cap": "🎤岡山理科大学附属高校IBコース  ＼現役IB生に聞いてみた／  今回は岡山理科大学附属高等学校のIBコースの高校3年生"}, {"type": "Instagramカルーセル", "publish": "06/03/2026 02:00", "views": 5578, "reach": 2273, "likes": 40, "shares": 6, "follows": 7, "comments": 0, "saves": 31, "cap": "「IBの成績ってどうやって決まるんだっけ？」と、 成績評価の仕組みなどについて疑問に感じるIB生も少なくないのではないで"}, {"type": "IGリール動画", "publish": "06/01/2026 02:00", "views": 13139, "reach": 8630, "likes": 64, "shares": 21, "follows": 5, "comments": 0, "saves": 28, "cap": "💰DP取得で海外大学奨学金 ＼EDUBALが国内IB校を取材／  今回は岡山県にある岡山理科大学附属高等学校のIBコース"}, {"type": "IGリール動画", "publish": "05/29/2026 02:00", "views": 13205, "reach": 8470, "likes": 103, "shares": 36, "follows": 24, "comments": 2, "saves": 50, "cap": "現役ICU生に直撃🎤  ＼やりたいこと、学びたいことが多いIB生必見／  国内インターナショナルスクールでIBDPを修了"}, {"type": "Instagramカルーセル", "publish": "05/27/2026 02:00", "views": 6601, "reach": 2693, "likes": 79, "shares": 14, "follows": 13, "comments": 0, "saves": 98, "cap": "「IBの成績ってどうやって決まるんだっけ？」と、 成績評価の仕組みなどについて疑問に感じるIB生も少なくないのではないで"}, {"type": "Instagramカルーセル", "publish": "05/26/2026 02:00", "views": 5179, "reach": 1491, "likes": 23, "shares": 2, "follows": 0, "comments": 0, "saves": 15, "cap": "📣今年もIBDP対策オンライン夏期講習を開講！複数科目の受講で割引あり！🌞  こんなお悩みはありませんか？ 🤔夏休みのう"}, {"type": "IGリール動画", "publish": "05/25/2026 02:00", "views": 8591, "reach": 5618, "likes": 76, "shares": 67, "follows": 36, "comments": 5, "saves": 46, "cap": "EEのテーマで悩んでる人必見!!  EEのテーマってなかなか決めるの難しいですよね… 今回は同じように悩んだ元IB生が、"}, {"type": "IGリール動画", "publish": "05/22/2026 02:00", "views": 13967, "reach": 9924, "likes": 118, "shares": 82, "follows": 60, "comments": 5, "saves": 101, "cap": "5点上がるIBハックとは？？  元IB生が教えるIBハックは、もうみんなが使っているあのサイト!? 知っていても、どう使"}, {"type": "Instagramカルーセル", "publish": "05/20/2026 02:00", "views": 3778, "reach": 1426, "likes": 22, "shares": 0, "follows": 0, "comments": 0, "saves": 12, "cap": "医学部と聞くと、一般入試でも狭き門だという印象ですが、 実はIBDPで有利に受験できることはご存じですか？  「IBを使"}, {"type": "Instagramカルーセル", "publish": "05/18/2026 02:00", "views": 3322, "reach": 1209, "likes": 11, "shares": 0, "follows": 2, "comments": 0, "saves": 14, "cap": "IBDP履修中のみなさん注目！👀 今日はEDUBALが主催するIB生向けセミナーのお知らせです📣  IBDP履修中の生徒"}, {"type": "IGリール動画", "publish": "05/15/2026 02:00", "views": 8548, "reach": 5210, "likes": 84, "shares": 33, "follows": 13, "comments": 0, "saves": 57, "cap": "【衝撃】都立国際高校からIBスコア44点でケンブリッジ大学に合格した元IB生にインタビュー🎙️  ＼ハイスコアを狙ってい"}, {"type": "Instagramカルーセル", "publish": "05/14/2026 02:00", "views": 6654, "reach": 1597, "likes": 21, "shares": 4, "follows": 1, "comments": 0, "saves": 16, "cap": "IB生＆保護者の皆さんへ！📢 ＼今年も開催決定！／ 【IB生向け】オンライン大学説明会2026 🌏  毎年恒例となってい"}, {"type": "Instagramカルーセル", "publish": "05/13/2026 02:00", "views": 5556, "reach": 2175, "likes": 27, "shares": 8, "follows": 1, "comments": 0, "saves": 39, "cap": "医学部と聞くと、一般入試でも狭き門だという印象ですが、 実はIBDPで有利に受験できることはご存じですか？  「IBを使"}, {"type": "IGリール動画", "publish": "05/11/2026 02:00", "views": 10484, "reach": 6748, "likes": 99, "shares": 26, "follows": 11, "comments": 0, "saves": 32, "cap": "IB低くても慶應に合格⁉︎  IBで勉強が大変でも、ちゃんと寝てくださいね🛌 EDUBALは頑張るIB生を応援しています"}, {"type": "IGリール動画", "publish": "05/08/2026 02:00", "views": 27954, "reach": 21789, "likes": 142, "shares": 24, "follows": 48, "comments": 2, "saves": 87, "cap": "🏫IB生に大人気の上智大学を取材  5年で1,000人のIB生が出願すると言われている、IB生に非常に人気が高い上智大学"}, {"type": "Instagramカルーセル", "publish": "05/06/2026 02:00", "views": 3185, "reach": 1191, "likes": 15, "shares": 2, "follows": 0, "comments": 0, "saves": 9, "cap": "IBで身につくスキルがどのように将来活かせるか？📚  IBの授業で培うスキルや能力は、 IB生時代だけでなく、 大学生活"}, {"type": "IGリール動画", "publish": "05/04/2026 02:00", "views": 9420, "reach": 5819, "likes": 93, "shares": 61, "follows": 25, "comments": 0, "saves": 53, "cap": "IB卒業生が失敗談を赤裸々告白！🤫  みなさんはIBの勉強で悩んだ経験、ありますか？ コメント欄で教えてください！  —"}, {"type": "IGリール動画", "publish": "05/01/2026 02:00", "views": 12364, "reach": 7996, "likes": 119, "shares": 57, "follows": 32, "comments": 0, "saves": 71, "cap": "IB43点の㊙️勉強法を大公開！  みなさんはIBの勉強で悩んだ経験、ありますか？ コメント欄で教えてください！  ——"}, {"type": "IGリール動画", "publish": "04/29/2026 02:00", "views": 10316, "reach": 4816, "likes": 30, "shares": 10, "follows": 13, "comments": 0, "saves": 33, "cap": "2026年6月開催｜春のオープンキャンパスまとめ🌷  IB入試を実施している大学や、IB生に人気のある大学をピックアップ"}, {"type": "Instagramカルーセル", "publish": "04/22/2026 02:00", "views": 3552, "reach": 1207, "likes": 24, "shares": 2, "follows": 1, "comments": 0, "saves": 14, "cap": "大学入試でのIBDPのメリット/デメリットとは？📚 今回は、国内大学への進学を中心に、 IBが大学入試にどのように影響す"}, {"type": "Instagramカルーセル", "publish": "04/19/2026 23:00", "views": 8330, "reach": 2792, "likes": 33, "shares": 10, "follows": 0, "comments": 0, "saves": 24, "cap": "📣帰国大学入試の縮小にどう対応する？帰国生のための「総合型選抜」攻略セミナー  帰国生入試の縮小が続き、不安を感じている"}, {"type": "Instagramカルーセル", "publish": "04/14/2026 19:32", "views": 5954, "reach": 2118, "likes": 18, "shares": 2, "follows": 3, "comments": 0, "saves": 6, "cap": "🌎世界中で800人が受講している オンライン家庭教師EDUBALってどんなサービス❓  💁‍♀️お問合せは、「EDUBA"}, {"type": "Instagramカルーセル", "publish": "04/08/2026 02:00", "views": 3638, "reach": 1284, "likes": 31, "shares": 8, "follows": 0, "comments": 0, "saves": 30, "cap": "DP2年間の流れを紹介！ 【DP2年生編】 各科目どのようなスケジュールで進むかを理解しておこう👍  今回は、理系DP生"}, {"type": "Instagramカルーセル", "publish": "04/01/2026 02:00", "views": 4138, "reach": 1264, "likes": 30, "shares": 6, "follows": 1, "comments": 0, "saves": 36, "cap": "DP2年間の流れを紹介！ 【DP1年生編】 各科目どのようなスケジュールで進むかを理解しておこう👍  今回は、理系DP生"}, {"type": "IGリール動画", "publish": "03/30/2026 03:00", "views": 4562, "reach": 2641, "likes": 61, "shares": 12, "follows": 3, "comments": 0, "saves": 27, "cap": "【理工学生が感じる！IB Mathで役に立つトピック3選📘✨】  こんにちは！😆🫶 元IB生で、現在早稲田で理工学を学ぶ"}];
+
+/* ---------- utils ---------- */
+const TYPES = {
+  'IGリール動画':{key:'reel', short:'リール', cls:'reel', color:'#E8502E'},
+  'Instagramカルーセル':{key:'car', short:'カルーセル', cls:'car', color:'#5E7A9B'},
+  'Instagram画像':{key:'img', short:'画像', cls:'img', color:'#9DB0C4'},
+};
+const DOW = ['日','月','火','水','木','金','土']; // JS getDay 0=Sun
+const fmt = n => (Math.round(n)).toLocaleString('ja-JP');
+const fmt1 = n => (Math.round(n*10)/10).toLocaleString('ja-JP',{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct = n => (Math.round(n*1000)/10).toFixed(1)+'%';
+
+function parsePublish(s){
+  // MM/DD/YYYY HH:MM
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return new Date(+m[3], +m[1]-1, +m[2], +m[4], +m[5]);
+}
+function monthKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabel(k){ const [y,m]=k.split('-'); return y+'年'+(+m)+'月'; }
+
+/* ---------- robust CSV parser (handles BOM, quoted commas & newlines) ---------- */
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], field='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else q=false; }
+      else field+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\r'){ /* skip */ }
+      else field+=c;
+    }
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+function rowsFromCSV(text){
+  const raw=parseCSV(text).filter(r=>r.length>1);
+  if(!raw.length) return [];
+  const head=raw[0].map(h=>h.trim());
+  const idx=name=>head.findIndex(h=>h===name);
+  const ci={type:idx('投稿タイプ'),pub:idx('公開時間'),cap:idx('説明'),
+    views:idx('ビュー'),reach:idx('リーチ'),likes:idx('いいね！の数'),
+    shares:idx('シェア数'),follows:idx('フォロー数'),comments:idx('コメント数'),saves:idx('保存数')};
+  const num=v=>{const n=parseInt((v||'').replace(/[^\d-]/g,''),10); return isNaN(n)?0:n;};
+  const out=[];
+  for(let i=1;i<raw.length;i++){
+    const r=raw[i]; if(ci.pub<0||!r[ci.pub]) continue;
+    out.push({
+      type:r[ci.type], publish:r[ci.pub],
+      cap:(r[ci.cap]||'').replace(/\s+/g,' ').trim().slice(0,60),
+      views:num(r[ci.views]), reach:num(r[ci.reach]), likes:num(r[ci.likes]),
+      shares:num(r[ci.shares]), follows:num(r[ci.follows]),
+      comments:num(r[ci.comments]), saves:num(r[ci.saves]),
+    });
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+let DATA=[]; let CHARTS={};
+function prep(rows){
+  return rows.map(r=>{ const d=parsePublish(r.publish); return {...r,_d:d,_m:d?monthKey(d):'?'}; })
+             .filter(r=>r._d);
+}
+function months(){ return [...new Set(DATA.map(r=>r._m))].sort(); }
+function rowsIn(m){ return m==='ALL'?DATA:DATA.filter(r=>r._m===m); }
+
+function agg(rows){
+  const s=(k)=>rows.reduce((a,r)=>a+r[k],0);
+  const reach=s('reach'), follows=s('follows'), views=s('views');
+  const eng=rows.reduce((a,r)=>a+r.likes+r.comments+r.shares+r.saves,0);
+  return {n:rows.length, reach, views, follows,
+    cvr: reach? follows/reach : 0,
+    per: rows.length? follows/rows.length : 0,
+    eng: reach? eng/reach : 0};
+}
+
+/* ---------- render ---------- */
+function deltaHTML(cur, prev, kind){
+  if(prev==null) return '<span class="delta flat">前月比 —</span>';
+  if(prev===0) return cur>0?'<span class="delta up">前月比 新規</span>':'<span class="delta flat">前月比 —</span>';
+  const ch=(cur-prev)/prev*100;
+  const cls=ch>1?'up':ch<-1?'down':'flat';
+  const arrow=ch>1?'▲':ch<-1?'▼':'＝';
+  return `<span class="delta ${cls}">前月比 ${arrow}${Math.abs(Math.round(ch))}%</span>`;
+}
+
+function renderHero(m){
+  const cur=agg(rowsIn(m));
+  const ms=months(); let prev=null;
+  if(m!=='ALL'){ const i=ms.indexOf(m); if(i>0) prev=agg(rowsIn(ms[i-1])); }
+  document.getElementById('h-follow').textContent=fmt(cur.follows);
+  document.getElementById('h-follow-d').innerHTML=deltaHTML(cur.follows, prev?prev.follows:null);
+  document.getElementById('h-cvr').textContent=pct(cur.cvr);
+  document.getElementById('h-cvr-d').innerHTML=deltaHTML(cur.cvr, prev?prev.cvr:null);
+  document.getElementById('h-per').textContent=fmt1(cur.per);
+  document.getElementById('h-per-d').innerHTML=deltaHTML(cur.per, prev?prev.per:null);
+  document.getElementById('h-reach').textContent=fmt(cur.reach);
+  document.getElementById('h-views').textContent=fmt(cur.views);
+  document.getElementById('h-eng').textContent=pct(cur.eng);
+  document.getElementById('h-posts').textContent=fmt(cur.n);
+}
+
+function renderPlan(m){
+  const rows=rowsIn(m); const ul=document.getElementById('plan-list'); ul.innerHTML='';
+  if(!rows.length){ul.innerHTML='<li>この期間のデータがありません。</li>';return;}
+  const tips=[];
+  // 1) best format by follows/post
+  const byType={};
+  rows.forEach(r=>{(byType[r.type]=byType[r.type]||[]).push(r);});
+  const typeStat=Object.entries(byType).map(([t,rs])=>({t,per:rs.reduce((a,r)=>a+r.follows,0)/rs.length,n:rs.length}))
+    .sort((a,b)=>b.per-a.per);
+  if(typeStat.length){
+    const best=typeStat[0], worst=typeStat[typeStat.length-1];
+    const sh=t=>TYPES[t]?TYPES[t].short:t;
+    let ratio = worst.per>0 ? (best.per/worst.per) : null;
+    tips.push(`獲得効率が最も高い形式は<b>${sh(best.t)}</b>（1投稿あたり<b>${fmt1(best.per)}フォロー</b>）`+
+      (ratio?`。<b>${sh(worst.t)}</b>の約<b>${fmt1(ratio)}倍</b>。来月は${sh(best.t)}の比率を上げるのが有効。`:'。'));
+  }
+  // 2) best day by avg follows
+  const byDay={};
+  rows.forEach(r=>{const d=r._d.getDay();(byDay[d]=byDay[d]||[]).push(r.follows);});
+  const dayStat=Object.entries(byDay).map(([d,a])=>({d:+d,avg:a.reduce((x,y)=>x+y,0)/a.length,n:a.length}))
+    .filter(x=>x.n>=1).sort((a,b)=>b.avg-a.avg);
+  if(dayStat.length>=2){
+    tips.push(`<b>${DOW[dayStat[0].d]}曜</b>の投稿が平均<b>${fmt1(dayStat[0].avg)}フォロー</b>で最も獲得につながっている。重要企画はこの曜日に。`);
+  }
+  // 3) top topic
+  const top=[...rows].sort((a,b)=>b.follows-a.follows)[0];
+  if(top&&top.follows>0){
+    tips.push(`最も獲得したのは「<b>${top.cap||'(キャプションなし)'}</b>」（${top.follows}フォロー）。この話題・切り口を展開する。`);
+  }
+  // 4) conversion benchmark
+  const a=agg(rows);
+  tips.push(`今期のフォロー転換率は<b>${pct(a.cvr)}</b>。リーチを“フォロー”に変える導線（プロフィール誘導・続きはフォロー等）を全投稿で点検。`);
+  tips.forEach(t=>{const li=document.createElement('li');li.innerHTML=t;ul.appendChild(li);});
+}
+
+function destroy(id){ if(CHARTS[id]){CHARTS[id].destroy(); delete CHARTS[id];} }
+const GRID={color:'#EEE9DF'}, TICK={color:'#3A4A66',font:{family:'inherit',size:11}};
+
+function renderTrend(){
+  const ms=months();
+  const follows=ms.map(m=>agg(rowsIn(m)).follows);
+  const reach=ms.map(m=>agg(rowsIn(m)).reach);
+  destroy('trend');
+  CHARTS.trend=new Chart(document.getElementById('trendChart'),{
+    data:{labels:ms.map(monthLabel),
+      datasets:[
+        {type:'bar',label:'獲得フォロー',data:follows,backgroundColor:'#E8502E',borderRadius:5,yAxisID:'y',order:2},
+        {type:'line',label:'合計リーチ',data:reach,borderColor:'#5E7A9B',backgroundColor:'#5E7A9B',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y1',order:1}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{
+        y:{position:'left',grid:GRID,ticks:TICK,title:{display:true,text:'獲得フォロー',color:'#E8502E',font:{size:10}}},
+        y1:{position:'right',grid:{display:false},ticks:TICK,title:{display:true,text:'リーチ',color:'#5E7A9B',font:{size:10}}},
+        x:{grid:{display:false},ticks:TICK}
+      }}
+  });
+}
+
+function renderType(m){
+  const rows=rowsIn(m); const byType={};
+  rows.forEach(r=>{(byType[r.type]=byType[r.type]||[]).push(r);});
+  const order=['IGリール動画','Instagramカルーセル','Instagram画像'].filter(t=>byType[t]);
+  const labels=order.map(t=>TYPES[t].short+`\n(${byType[t].length}投稿)`);
+  const per=order.map(t=>byType[t].reduce((a,r)=>a+r.follows,0)/byType[t].length);
+  const colors=order.map(t=>TYPES[t].color);
+  destroy('type');
+  CHARTS.type=new Chart(document.getElementById('typeChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data:per,backgroundColor:colors,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'1投稿あたり '+fmt1(c.raw)+' フォロー'}}},
+      scales:{y:{grid:GRID,ticks:TICK,title:{display:true,text:'1投稿あたり獲得フォロー',color:'#3A4A66',font:{size:10}}},
+        x:{grid:{display:false},ticks:{...TICK,font:{size:11}}}}}
+  });
+}
+
+function renderDay(m){
+  const rows=rowsIn(m); const byDay={};
+  rows.forEach(r=>{const d=r._d.getDay();(byDay[d]=byDay[d]||[]).push(r.follows);});
+  const order=[1,2,3,4,5,6,0]; // 月..日
+  const labels=order.map(d=>DOW[d]);
+  const avg=order.map(d=>byDay[d]?byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length:0);
+  const cnt=order.map(d=>byDay[d]?byDay[d].length:0);
+  const max=Math.max(...avg,1);
+  const colors=avg.map(v=>v>=max*0.66?'#E8502E':v>=max*0.33?'#EE8B73':'#D9CFC0');
+  destroy('day');
+  CHARTS.day=new Chart(document.getElementById('dayChart'),{
+    type:'bar',
+    data:{labels,datasets:[{data:avg,backgroundColor:colors,borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{label:c=>'平均 '+fmt1(c.raw)+' フォロー ／ '+cnt[c.dataIndex]+'投稿'}}},
+      scales:{y:{grid:GRID,ticks:TICK,beginAtZero:true},x:{grid:{display:false},ticks:TICK}}}
+  });
+}
+
+function median(arr){ if(!arr.length)return 0; const s=[...arr].sort((a,b)=>a-b); const m=Math.floor(s.length/2);
+  return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+
+const quadrantPlugin={
+  id:'quad',
+  beforeDraw(chart){
+    const {ctx,chartArea,scales}=chart; if(!chartArea)return;
+    const mx=chart.$mx, my=chart.$my; if(mx==null)return;
+    const px=scales.x.getPixelForValue(mx), py=scales.y.getPixelForValue(my);
+    ctx.save();
+    // shade winning quadrant (top-right)
+    ctx.fillStyle='rgba(232,80,46,0.06)';
+    ctx.fillRect(px,chartArea.top,chartArea.right-px,py-chartArea.top);
+    // median lines
+    ctx.strokeStyle='#C9BFAF'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(px,chartArea.top);ctx.lineTo(px,chartArea.bottom);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(chartArea.left,py);ctx.lineTo(chartArea.right,py);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#C53B1C'; ctx.font='700 11px '+getComputedStyle(document.body).fontFamily;
+    ctx.textAlign='right'; ctx.fillText('勝ちゾーン', chartArea.right-8, chartArea.top+15);
+    ctx.restore();
+  }
+};
+
+function renderScatter(m){
+  const rows=rowsIn(m);
+  const mx=median(rows.map(r=>r.reach)), my=median(rows.map(r=>r.cvr?r.cvr:(r.reach?r.follows/r.reach:0)));
+  const maxF=Math.max(...rows.map(r=>r.follows),1);
+  const groups={};
+  rows.forEach(r=>{const k=r.type;(groups[k]=groups[k]||[]).push(r);});
+  const datasets=Object.entries(groups).map(([t,rs])=>({
+    label:TYPES[t]?TYPES[t].short:t,
+    backgroundColor:(TYPES[t]?TYPES[t].color:'#999')+'CC',
+    borderColor:TYPES[t]?TYPES[t].color:'#999', borderWidth:1,
+    data:rs.map(r=>({x:r.reach, y:r.reach?r.follows/r.reach*100:0,
+      r:5+Math.sqrt(r.follows/maxF)*22, _f:r.follows, _cap:r.cap, _reach:r.reach}))
+  }));
+  destroy('scatter');
+  const ch=new Chart(document.getElementById('scatterChart'),{
+    type:'bubble',
+    data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{
+          title:items=>items[0].raw._cap||'(キャプションなし)',
+          label:c=>['獲得フォロー '+c.raw._f,'リーチ '+fmt(c.raw._reach),'転換率 '+c.raw.y.toFixed(2)+'%']
+        }}},
+      scales:{
+        x:{type:'linear',grid:GRID,ticks:{...TICK,callback:v=>fmt(v)},title:{display:true,text:'リーチ（届いた広さ）',color:'#3A4A66',font:{size:11}}},
+        y:{grid:GRID,ticks:{...TICK,callback:v=>v+'%'},title:{display:true,text:'フォロー転換率（刺さり）',color:'#3A4A66',font:{size:11}}}
+      }},
+    plugins:[quadrantPlugin]
+  });
+  ch.$mx=mx; ch.$my=my*100; CHARTS.scatter=ch; ch.update();
+}
+
+function renderTop(m){
+  const rows=[...rowsIn(m)].sort((a,b)=>b.follows-a.follows).slice(0,8);
+  const tb=document.getElementById('top-body'); tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const ti=TYPES[r.type]||{short:r.type,cls:'img'};
+    const cvr=r.reach?(r.follows/r.reach*100).toFixed(2)+'%':'—';
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td class="rank">${i+1}</td>
+       <td class="cap" title="${(r.cap||'').replace(/"/g,'&quot;')}">${r.cap||'(キャプションなし)'}</td>
+       <td><span class="badge ${ti.cls}">${ti.short}</span></td>
+       <td class="n"><span class="fw">${fmt(r.follows)}</span></td>
+       <td class="n">${fmt(r.reach)}</td>
+       <td class="n">${cvr}</td>
+       <td class="n">${fmt(r.saves)}</td></tr>`);
+  });
+}
+
+function renderRange(){
+  const ds=DATA.map(r=>r._d).sort((a,b)=>a-b);
+  const f=d=>`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('range').textContent= ds.length? f(ds[0])+' – '+f(ds[ds.length-1]) : '—';
+  document.getElementById('postcount').textContent=DATA.length;
+  document.getElementById('footer').innerHTML=
+    `各行はInstagramのコンテンツ単位エクスポート（指標は<b>通算＝ライフタイム累積値</b>）です。月別は公開時間から判定したコホートで、古い月ほど数値の蓄積期間が長い点にご注意ください。`+
+    `<br>このダッシュボードは、ファイル冒頭の <b>SHEET_CSV_URL</b> に設定した「ウェブに公開」したGoogleスプレッドシートのCSVを読み込みます。シートを更新すれば、閲覧者が再取得した時点で最新になります。`+
+    `<br><b>公開範囲について：</b>「ウェブに公開」したCSVは、URLを知っていれば誰でも閲覧できる状態になります。キャプションや数値もこのHTMLを通じて公開されるため、外部に出したくない列はシートに含めないでください。`;
+}
+
+function renderAll(){
+  const m=document.getElementById('month').value;
+  renderHero(m); renderPlan(m); renderTrend();
+  renderType(m); renderDay(m); renderScatter(m); renderTop(m);
+}
+
+function buildMonthOptions(){
+  const sel=document.getElementById('month'); sel.innerHTML='';
+  months().forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=monthLabel(m);sel.appendChild(o);});
+  const all=document.createElement('option');all.value='ALL';all.textContent='全期間';sel.appendChild(all);
+  sel.value=months().length?months()[months().length-1]:'ALL'; // default: latest month
+}
+
+function load(rows){
+  DATA=prep(rows);
+  if(!DATA.length){alert('投稿データを読み取れませんでした。Instagramのコンテンツ別CSVかご確認ください。');return;}
+  buildMonthOptions(); renderRange(); renderAll();
+}
+
+/* ============================================================
+   データソース設定（公開ダッシュボードにする手順）
+   ① Googleスプレッドシートを開き、ファイル > 共有 > ウェブに公開
+      → 「カンマ区切り形式（.csv）」を選んで公開し、発行されたURL
+        （…/pub?…&output=csv の形）をコピー
+   ② 下の SHEET_CSV_URL に貼り付け（ダブルクォートの中）
+   ③ このHTMLを公開ホスティングに置く（Netlify Drop か GitHub Pages 等）
+      → 以降はシートを更新するだけで、誰でも最新版を閲覧できます
+   ※ URLの後ろに ?csv=（公開CSVのURL）を付けても上書きできます
+   ※ 空のままだと埋め込みサンプルデータを表示します
+   ============================================================ */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=0&single=true&output=csv"; // ← ここに公開CSVのURLを貼り付け
+
+function setSource(label, ok){
+  const el=document.getElementById('src'); if(!el)return;
+  el.textContent=label;
+  el.style.color = ok ? 'var(--slate)' : 'var(--signal-deep)';
+}
+function activeUrl(){
+  return new URLSearchParams(location.search).get('csv') || SHEET_CSV_URL;
+}
+async function loadFromSheet(url){
+  setSource('スプレッドシートに接続中…', true);
+  try{
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    const rows=rowsFromCSV(text);
+    if(!rows.length) throw new Error('行を読み取れませんでした');
+    load(rows);
+    setSource('接続中：Googleスプレッドシート ／ 取得 '+new Date().toLocaleString('ja-JP'), true);
+  }catch(e){
+    setSource('スプレッドシートを読み込めませんでした（'+e.message+'）。サンプルデータを表示中。', false);
+  }
+}
+
+/* ---------- events ---------- */
+document.getElementById('month').addEventListener('change',renderAll);
+document.getElementById('reloadBtn').addEventListener('click',()=>document.getElementById('file').click());
+document.getElementById('refetchBtn').addEventListener('click',()=>{
+  const u=activeUrl(); if(u) loadFromSheet(u); else document.getElementById('file').click();
+});
+document.getElementById('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>{ load(rowsFromCSV(rd.result));
+    setSource('手動で読み込んだファイル：'+f.name, true); }; rd.readAsText(f,'utf-8');
+});
+['dragover','dragenter'].forEach(ev=>document.body.addEventListener(ev,e=>{e.preventDefault();document.getElementById('app').classList.add('drop-hint');}));
+['dragleave','drop'].forEach(ev=>document.body.addEventListener(ev,e=>{e.preventDefault();document.getElementById('app').classList.remove('drop-hint');}));
+document.body.addEventListener('drop',e=>{
+  const f=e.dataTransfer.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>{ load(rowsFromCSV(rd.result));
+    setSource('手動で読み込んだファイル：'+f.name, true); }; rd.readAsText(f,'utf-8');
+});
+
+/* ---------- init ---------- */
+(function init(){
+  load(SEED);                       // まず即表示（サンプル＝接続未設定時のフォールバック）
+  const u=activeUrl();
+  if(u){ loadFromSheet(u); }
+  else { setSource('サンプルデータを表示中（公開シートのURL未設定）', true); }
+})();
+</script>
+</body>
+</html>
