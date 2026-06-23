@@ -169,9 +169,19 @@
     </div>
   </section>
 
+  <!-- account-wide follower trend -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">01</span><h2>アカウント全体の獲得フォロワー数の推移</h2>
+      <span class="note" id="follower-note">—</span></div>
+    <div class="panel">
+      <div class="sub" style="margin-bottom:10px">投稿経由に限らない全流入の日次獲得数。薄い面＝日次、太線＝7日移動平均（トレンド）。</div>
+      <div class="chartbox" style="height:260px"><canvas id="followerChart"></canvas></div>
+    </div>
+  </section>
+
   <!-- monthly trends -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">01</span><h2>月次の推移</h2>
+    <div class="sec-head"><span class="idx">02</span><h2>月次の推移</h2>
       <span class="note">公開月コホート ／ フォロー等の指標は累積（古い月ほど蓄積期間が長い）</span></div>
     <div class="grid2">
       <div class="panel">
@@ -189,7 +199,7 @@
 
   <!-- scatter -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">02</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
+    <div class="sec-head"><span class="idx">03</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
       <span class="note">右上＝広く届き、かつフォローに繋がった投稿。バブル大＝獲得数大</span></div>
     <div class="panel">
       <div class="chartbox tall"><canvas id="scatterChart"></canvas></div>
@@ -204,7 +214,7 @@
 
   <!-- top posts -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">03</span><h2>投稿別の実績成果（獲得フォロー順）</h2>
+    <div class="sec-head"><span class="idx">04</span><h2>投稿別の実績成果（獲得フォロー順）</h2>
       <span class="note">伸びた話題を言語化して次月の企画に転用する</span></div>
     <div class="panel" style="padding-top:8px">
       <table>
@@ -397,6 +407,84 @@ function renderTrend(){
   });
 }
 
+/* ---------- account-wide daily followers (2nd source) ---------- */
+let FOLLOWER_DATA=[]; let FOLLOWER_SRC='';
+function parseFollowerRows(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const raw=parseCSV(text).filter(r=>r.length>=2);
+  const out=[];
+  for(const r of raw){
+    const m=(r[0]||'').match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if(!m) continue;                       // ヘッダー・空行は日付不一致でスキップ
+    let v=null;
+    for(let i=1;i<r.length;i++){ const n=parseInt((r[i]||'').replace(/[^\d-]/g,''),10); if(!isNaN(n)){v=n;break;} }
+    if(v==null) continue;
+    out.push({d:new Date(+m[1],+m[2]-1,+m[3]), v});
+  }
+  out.sort((a,b)=>a.d-b.d);
+  return out;
+}
+function loadFollowers(rows, srcLabel){
+  FOLLOWER_DATA=rows; if(srcLabel!=null) FOLLOWER_SRC=srcLabel; renderFollowerTrend();
+}
+const dayKey=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+function renderFollowerTrend(){
+  const data=FOLLOWER_DATA;
+  const note=document.getElementById('follower-note');
+  if(!data.length){ if(note) note.textContent='データがありません'; destroy('follower'); return; }
+  const labels=data.map(p=>(p.d.getMonth()+1)+'/'+p.d.getDate());
+  const daily=data.map(p=>p.v);
+  const ma=daily.map((_,i)=>{ const s=Math.max(0,i-6); const seg=daily.slice(s,i+1);
+    return seg.reduce((a,b)=>a+b,0)/seg.length; });
+  const total=daily.reduce((a,b)=>a+b,0);
+  // 投稿日マーカー（投稿レベルデータDATAから日単位で集計）
+  const postByDay={};
+  DATA.forEach(r=>{ const k=dayKey(r._d); (postByDay[k]=postByDay[k]||[]).push(r); });
+  const markerData=data.map(p=> postByDay[dayKey(p.d)] ? p.v : null);
+  const markerCount=markerData.filter(x=>x!=null).length;
+  const f=d=>`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  if(note) note.textContent=`アカウント全体・全流入 ／ 期間 ${f(data[0].d)}–${f(data[data.length-1].d)} ／ 合計 ${fmt(total)}人 ／ 投稿日 ${markerCount}日`
+    + (FOLLOWER_SRC?` ／ ${FOLLOWER_SRC}`:'');
+  destroy('follower');
+  CHARTS.follower=new Chart(document.getElementById('followerChart'),{
+    data:{labels,datasets:[
+      {type:'line',label:'日次の獲得フォロワー',data:daily,
+        borderColor:'rgba(232,80,46,0.30)',backgroundColor:'rgba(232,80,46,0.09)',
+        borderWidth:1,pointRadius:0,fill:true,tension:.2,order:3},
+      {type:'line',label:'7日移動平均',data:ma,
+        borderColor:'#E8502E',borderWidth:2.5,pointRadius:0,tension:.3,order:2},
+      {type:'line',label:'投稿日',data:markerData,showLine:false,spanGaps:false,
+        pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,
+        pointBackgroundColor:'#14213D',pointBorderColor:'#fff',pointBorderWidth:1.5,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:14,usePointStyle:true}},
+        tooltip:{filter:item=>item.raw!=null,callbacks:{
+          title:items=>{const d=data[items[0].dataIndex].d; return (d.getMonth()+1)+'月'+d.getDate()+'日';},
+          label:c=>{
+            if(c.datasetIndex===2){
+              const ps=postByDay[dayKey(data[c.dataIndex].d)]||[];
+              const types=[...new Set(ps.map(r=>TYPES[r.type]?TYPES[r.type].short:r.type))].join('・');
+              return '投稿 '+ps.length+'件（'+types+'）';
+            }
+            return c.dataset.label+' '+(c.datasetIndex===1?fmt1(c.raw):fmt(c.raw))+'人';
+          }}}},
+      scales:{
+        x:{grid:{display:false},ticks:{...TICK,autoSkip:true,maxTicksLimit:8}},
+        y:{grid:GRID,beginAtZero:true,ticks:{...TICK,precision:0},
+           title:{display:true,text:'獲得フォロワー / 日',color:'#3A4A66',font:{size:10}}}
+      }}
+  });
+}
+async function loadFollowersFromSheet(url){
+  try{
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=parseFollowerRows(await res.text());
+    if(!rows.length) throw new Error('行を読み取れません');
+    loadFollowers(rows,'Sheets取得 '+new Date().toLocaleDateString('ja-JP'));
+  }catch(e){ console.warn('follower fetch failed:',e.message); }
+}
+
 function renderPostTypeTrend(){
   const ms=months();
   const order=['IGリール動画','Instagramカルーセル','Instagram画像'];
@@ -526,6 +614,7 @@ function load(rows){
   DATA=prep(rows);
   if(!DATA.length){alert('投稿データを読み取れませんでした。Instagramのコンテンツ別CSVかご確認ください。');return;}
   buildMonthOptions(); renderRange(); renderAll();
+  if(FOLLOWER_DATA.length) renderFollowerTrend(); // 投稿日マーカーを最新のDATAに同期
 }
 
 /* ============================================================
@@ -540,6 +629,12 @@ function load(rows){
    ※ 空のままだと埋め込みサンプルデータを表示します
    ============================================================ */
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=0&single=true&output=csv"; // 公開CSVのURL
+
+/* 第2データソース：アカウント全体の「日次 獲得フォロワー数」CSV
+   （日付列 ＋ 日次フォロワー数 の2列）。同様に「ウェブに公開（CSV）」した
+   URLを貼り付けると差し替わります。空ならば埋め込みサンプルを表示します。 */
+const FOLLOWER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=931416063&single=true&output=csv"; // アカウント全体・日次フォロワーCSVの公開URL
+const FOLLOWER_SEED = [["2026-01-01", 2], ["2026-01-02", 4], ["2026-01-03", 1], ["2026-01-04", 2], ["2026-01-05", 2], ["2026-01-07", 4], ["2026-01-08", 4], ["2026-01-09", 4], ["2026-01-10", 2], ["2026-01-11", 4], ["2026-01-13", 2], ["2026-01-14", 5], ["2026-01-16", 2], ["2026-01-17", 14], ["2026-01-18", 4], ["2026-01-19", 4], ["2026-01-20", 1], ["2026-01-21", 1], ["2026-01-22", 1], ["2026-01-23", 6], ["2026-01-24", 1], ["2026-01-25", 1], ["2026-01-26", 4], ["2026-01-27", 2], ["2026-01-28", 5], ["2026-01-29", 3], ["2026-01-30", 3], ["2026-02-01", 5], ["2026-02-02", 5], ["2026-02-03", 2], ["2026-02-04", 2], ["2026-02-05", 2], ["2026-02-06", 8], ["2026-02-07", 1], ["2026-02-08", 3], ["2026-02-09", 5], ["2026-02-10", 2], ["2026-02-11", 2], ["2026-02-12", 2], ["2026-02-14", 3], ["2026-02-15", 3], ["2026-02-16", 7], ["2026-02-17", 5], ["2026-02-18", 1], ["2026-02-19", 7], ["2026-02-20", 5], ["2026-02-21", 2], ["2026-02-22", 3], ["2026-02-23", 2], ["2026-02-24", 3], ["2026-02-25", 5], ["2026-02-26", 2], ["2026-02-27", 4], ["2026-02-28", 3], ["2026-03-01", 1], ["2026-03-02", 2], ["2026-03-03", 5], ["2026-03-04", 7], ["2026-03-05", 2], ["2026-03-06", 5], ["2026-03-07", 1], ["2026-03-08", 2], ["2026-03-09", 20], ["2026-03-10", 13], ["2026-03-11", 4], ["2026-03-12", 3], ["2026-03-13", 2], ["2026-03-14", 5], ["2026-03-15", 1], ["2026-03-16", 1], ["2026-03-17", 3], ["2026-03-18", 3], ["2026-03-19", 5], ["2026-03-20", 4], ["2026-03-21", 2], ["2026-03-22", 4], ["2026-03-23", 4], ["2026-03-25", 2], ["2026-03-26", 4], ["2026-03-27", 6], ["2026-03-28", 3], ["2026-03-30", 3], ["2026-03-31", 3], ["2026-04-01", 1], ["2026-04-02", 4], ["2026-04-03", 5], ["2026-04-04", 2], ["2026-04-05", 1], ["2026-04-07", 3], ["2026-04-08", 1], ["2026-04-09", 2], ["2026-04-10", 9], ["2026-04-11", 1], ["2026-04-12", 6], ["2026-04-13", 2], ["2026-04-14", 2], ["2026-04-16", 2], ["2026-04-17", 4], ["2026-04-19", 1], ["2026-04-20", 2], ["2026-04-22", 3], ["2026-04-23", 2], ["2026-04-24", 2], ["2026-04-25", 1], ["2026-04-28", 2], ["2026-04-29", 2], ["2026-04-30", 3], ["2026-05-01", 22], ["2026-05-02", 20], ["2026-05-03", 1], ["2026-05-04", 12], ["2026-05-05", 11], ["2026-05-06", 5], ["2026-05-07", 1], ["2026-05-08", 8], ["2026-05-09", 7], ["2026-05-10", 8], ["2026-05-11", 11], ["2026-05-12", 6], ["2026-05-13", 5], ["2026-05-14", 10], ["2026-05-15", 11], ["2026-05-16", 6], ["2026-05-17", 8], ["2026-05-18", 8], ["2026-05-19", 2], ["2026-05-20", 6], ["2026-05-21", 3], ["2026-05-22", 19], ["2026-05-23", 26], ["2026-05-24", 11], ["2026-05-25", 17], ["2026-05-26", 13], ["2026-05-27", 17], ["2026-05-28", 21], ["2026-05-29", 22], ["2026-05-30", 15], ["2026-05-31", 6], ["2026-06-01", 10], ["2026-06-02", 11], ["2026-06-03", 6], ["2026-06-04", 8], ["2026-06-05", 6], ["2026-06-06", 6], ["2026-06-07", 8], ["2026-06-08", 20], ["2026-06-09", 9], ["2026-06-10", 10], ["2026-06-11", 7], ["2026-06-12", 26], ["2026-06-13", 12], ["2026-06-14", 9], ["2026-06-15", 17], ["2026-06-16", 8], ["2026-06-17", 18]];
 
 function setSource(label, ok){
   const el=document.getElementById('src'); if(!el)return;
@@ -585,10 +680,16 @@ document.body.addEventListener('drop',e=>{
 
 /* ---------- init ---------- */
 (function init(){
-  load(SEED);                       // まず即表示（サンプル＝接続未設定時のフォールバック）
+  load(SEED);                       // 投稿データ（サンプル or フォールバック）
   const u=activeUrl();
   if(u){ loadFromSheet(u); }
   else { setSource('サンプルデータを表示中（公開シートのURL未設定）', true); }
+
+  // アカウント全体・日次フォロワー（第2ソース）
+  loadFollowers(FOLLOWER_SEED.map(([d,v])=>({d:new Date(d+'T00:00:00'), v})),
+                FOLLOWER_CSV_URL ? '' : 'サンプル');
+  const fu=new URLSearchParams(location.search).get('followers') || FOLLOWER_CSV_URL;
+  if(fu) loadFollowersFromSheet(fu);
 })();
 </script>
 </body>
