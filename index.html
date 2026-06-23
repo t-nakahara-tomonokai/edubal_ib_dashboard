@@ -169,33 +169,27 @@
     </div>
   </section>
 
-  <!-- 2. monthly trend -->
+  <!-- monthly trends -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">01</span><h2>月別フォロー獲得の推移</h2>
-      <span class="note">公開月コホート ／ 数値は累積（古い月ほど蓄積期間が長い）</span></div>
-    <div class="panel"><div class="chartbox" style="height:230px"><canvas id="trendChart"></canvas></div></div>
-  </section>
-
-  <!-- 3. type efficiency + day -->
-  <section class="sec">
-    <div class="sec-head"><span class="idx">02</span><h2>どこに投下するか：形式別と曜日別の獲得効率</h2></div>
+    <div class="sec-head"><span class="idx">01</span><h2>月次の推移</h2>
+      <span class="note">公開月コホート ／ フォロー等の指標は累積（古い月ほど蓄積期間が長い）</span></div>
     <div class="grid2">
       <div class="panel">
-        <h3>投稿形式別 1投稿あたり獲得フォロー</h3>
-        <div class="sub">フォロワー獲得は形式で大きく変わる。太い形式に寄せる判断材料。</div>
-        <div class="chartbox"><canvas id="typeChart"></canvas></div>
+        <h3>月別フォロー獲得の推移</h3>
+        <div class="sub">棒＝獲得フォロー、線＝合計リーチ。</div>
+        <div class="chartbox" style="height:240px"><canvas id="trendChart"></canvas></div>
       </div>
       <div class="panel">
-        <h3>曜日別 平均獲得フォロー</h3>
-        <div class="sub">伸びる曜日に重要投稿を寄せる。バー上の小さい数字は投稿本数。</div>
-        <div class="chartbox"><canvas id="dayChart"></canvas></div>
+        <h3>月別投稿数（形式別）</h3>
+        <div class="sub">リール・カルーセル・画像の内訳。投下量と形式ミックスの推移を見る。</div>
+        <div class="chartbox" style="height:240px"><canvas id="postTypeChart"></canvas></div>
       </div>
     </div>
   </section>
 
-  <!-- 4. scatter -->
+  <!-- scatter -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">03</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
+    <div class="sec-head"><span class="idx">02</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
       <span class="note">右上＝広く届き、かつフォローに繋がった投稿。バブル大＝獲得数大</span></div>
     <div class="panel">
       <div class="chartbox tall"><canvas id="scatterChart"></canvas></div>
@@ -208,13 +202,23 @@
     </div>
   </section>
 
-  <!-- 5. top posts -->
+  <!-- top posts -->
   <section class="sec">
-    <div class="sec-head"><span class="idx">04</span><h2>獲得フォロー トップ投稿</h2>
+    <div class="sec-head"><span class="idx">03</span><h2>投稿別の実績成果（獲得フォロー順）</h2>
       <span class="note">伸びた話題を言語化して次月の企画に転用する</span></div>
     <div class="panel" style="padding-top:8px">
       <table>
-        <thead><tr><th></th><th>投稿（キャプション冒頭）</th><th>形式</th><th class="n">獲得<br>フォロー</th><th class="n">リーチ</th><th class="n">転換率</th><th class="n">保存</th></tr></thead>
+        <thead><tr>
+          <th></th>
+          <th>投稿（キャプション冒頭）</th>
+          <th>形式</th>
+          <th class="n">獲得<br>フォロー</th>
+          <th class="n">リーチ数</th>
+          <th class="n">転換率</th>
+          <th class="n">シェア数</th>
+          <th class="n">いいね数</th>
+          <th class="n">保存数</th>
+        </tr></thead>
         <tbody id="top-body"></tbody>
       </table>
     </div>
@@ -393,41 +397,29 @@ function renderTrend(){
   });
 }
 
-function renderType(m){
-  const rows=rowsIn(m); const byType={};
-  rows.forEach(r=>{(byType[r.type]=byType[r.type]||[]).push(r);});
-  const order=['IGリール動画','Instagramカルーセル','Instagram画像'].filter(t=>byType[t]);
-  const labels=order.map(t=>TYPES[t].short+`\n(${byType[t].length}投稿)`);
-  const per=order.map(t=>byType[t].reduce((a,r)=>a+r.follows,0)/byType[t].length);
-  const colors=order.map(t=>TYPES[t].color);
-  destroy('type');
-  CHARTS.type=new Chart(document.getElementById('typeChart'),{
+function renderPostTypeTrend(){
+  const ms=months();
+  const order=['IGリール動画','Instagramカルーセル','Instagram画像'];
+  const datasets=order.map(t=>({
+    label:TYPES[t].short,
+    data:ms.map(m=>rowsIn(m).filter(r=>r.type===t).length),
+    backgroundColor:TYPES[t].color, borderRadius:3, stack:'posts', maxBarThickness:54
+  }));
+  destroy('posttype');
+  CHARTS.posttype=new Chart(document.getElementById('postTypeChart'),{
     type:'bar',
-    data:{labels,datasets:[{data:per,backgroundColor:colors,borderRadius:6}]},
+    data:{labels:ms.map(monthLabel),datasets},
     options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'1投稿あたり '+fmt1(c.raw)+' フォロー'}}},
-      scales:{y:{grid:GRID,ticks:TICK,title:{display:true,text:'1投稿あたり獲得フォロー',color:'#3A4A66',font:{size:10}}},
-        x:{grid:{display:false},ticks:{...TICK,font:{size:11}}}}}
-  });
-}
-
-function renderDay(m){
-  const rows=rowsIn(m); const byDay={};
-  rows.forEach(r=>{const d=r._d.getDay();(byDay[d]=byDay[d]||[]).push(r.follows);});
-  const order=[1,2,3,4,5,6,0]; // 月..日
-  const labels=order.map(d=>DOW[d]);
-  const avg=order.map(d=>byDay[d]?byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length:0);
-  const cnt=order.map(d=>byDay[d]?byDay[d].length:0);
-  const max=Math.max(...avg,1);
-  const colors=avg.map(v=>v>=max*0.66?'#E8502E':v>=max*0.33?'#EE8B73':'#D9CFC0');
-  destroy('day');
-  CHARTS.day=new Chart(document.getElementById('dayChart'),{
-    type:'bar',
-    data:{labels,datasets:[{data:avg,backgroundColor:colors,borderRadius:6}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},
-        tooltip:{callbacks:{label:c=>'平均 '+fmt1(c.raw)+' フォロー ／ '+cnt[c.dataIndex]+'投稿'}}},
-      scales:{y:{grid:GRID,ticks:TICK,beginAtZero:true},x:{grid:{display:false},ticks:TICK}}}
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:14}},
+        tooltip:{callbacks:{
+          label:c=>c.dataset.label+' '+c.raw+'投稿',
+          footer:items=>'合計 '+items.reduce((a,i)=>a+i.raw,0)+'投稿'}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:TICK},
+        y:{stacked:true,grid:GRID,beginAtZero:true,
+           ticks:{...TICK,precision:0},
+           title:{display:true,text:'投稿数',color:'#3A4A66',font:{size:10}}}
+      }}
   });
 }
 
@@ -500,6 +492,8 @@ function renderTop(m){
        <td class="n"><span class="fw">${fmt(r.follows)}</span></td>
        <td class="n">${fmt(r.reach)}</td>
        <td class="n">${cvr}</td>
+       <td class="n">${fmt(r.shares)}</td>
+       <td class="n">${fmt(r.likes)}</td>
        <td class="n">${fmt(r.saves)}</td></tr>`);
   });
 }
@@ -517,8 +511,8 @@ function renderRange(){
 
 function renderAll(){
   const m=document.getElementById('month').value;
-  renderHero(m); renderPlan(m); renderTrend();
-  renderType(m); renderDay(m); renderScatter(m); renderTop(m);
+  renderHero(m); renderPlan(m); renderTrend(); renderPostTypeTrend();
+  renderScatter(m); renderTop(m);
 }
 
 function buildMonthOptions(){
@@ -545,7 +539,7 @@ function load(rows){
    ※ URLの後ろに ?csv=（公開CSVのURL）を付けても上書きできます
    ※ 空のままだと埋め込みサンプルデータを表示します
    ============================================================ */
-const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=0&single=true&output=csv"; // ← ここに公開CSVのURLを貼り付け
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=0&single=true&output=csv"; // 公開CSVのURL
 
 function setSource(label, ok){
   const el=document.getElementById('src'); if(!el)return;
