@@ -215,7 +215,7 @@
   <!-- top posts -->
   <section class="sec">
     <div class="sec-head"><span class="idx">04</span><h2>投稿別の実績成果（獲得フォロー順）</h2>
-      <span class="note">伸びた話題を言語化して次月の企画に転用する</span></div>
+      <span class="note">選択中の月に投稿した全コンテンツ ／ 獲得フォロー降順</span></div>
     <div class="panel" style="padding-top:8px">
       <table>
         <thead><tr>
@@ -568,7 +568,7 @@ function renderScatter(m){
 }
 
 function renderTop(m){
-  const rows=[...rowsIn(m)].sort((a,b)=>b.follows-a.follows).slice(0,8);
+  const rows=[...rowsIn(m)].sort((a,b)=>b.follows-a.follows);
   const tb=document.getElementById('top-body'); tb.innerHTML='';
   rows.forEach((r,i)=>{
     const ti=TYPES[r.type]||{short:r.type,cls:'img'};
