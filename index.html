@@ -52,9 +52,17 @@
   /* ---- hero KPI ---- */
   .hero{background:var(--card); border:1px solid var(--hair); border-radius:16px; padding:26px 28px 22px; box-shadow:0 1px 0 rgba(20,33,61,.03)}
   .hero-main{display:flex; align-items:flex-end; gap:34px; flex-wrap:wrap}
-  .kpi-follow .lab{font-size:12px; font-weight:700; letter-spacing:.04em; color:var(--signal); text-transform:uppercase}
-  .kpi-follow .big{font-size:74px; line-height:.92; font-weight:700; color:var(--signal); margin:.06em 0}
+  .kpi-follow .lab{font-size:11.5px; font-weight:700; letter-spacing:.02em; color:var(--signal)}
+  .kpi-follow .big{font-size:54px; line-height:.94; font-weight:700; color:var(--signal); margin:.06em 0}
+  .kpi-follow.alt .big{color:var(--signal-deep)}
   .kpi-follow .delta{font-size:13px; font-weight:600}
+  .kpi-follow .subnote{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:3px}
+  /* story KPI cards */
+  .kpirow{display:flex; gap:12px; flex-wrap:wrap}
+  .kpicard{flex:1 1 140px; background:var(--card); border:1px solid var(--hair); border-radius:12px; padding:14px 16px}
+  .kpicard .lab{font-size:11px; color:var(--ink-soft); font-weight:600}
+  .kpicard .v{font-size:24px; font-weight:700; line-height:1.1; margin-top:3px}
+  .kpicard.accent .v{color:var(--signal)}
   .delta.up{color:var(--signal-deep)} .delta.down{color:var(--slate)} .delta.flat{color:var(--muted)}
   .meridian{flex:1 1 120px; height:1.5px; background:linear-gradient(90deg,var(--signal-wash),var(--hair)); margin-bottom:30px; min-width:60px}
   .kpi-sub{display:flex; gap:30px; flex-wrap:wrap}
@@ -137,9 +145,15 @@
     <div class="hero">
       <div class="hero-main">
         <div class="kpi-follow">
-          <div class="lab">獲得フォロワー</div>
+          <div class="lab">アカウント全体での獲得フォロワー</div>
+          <div class="big num" id="h-acct">—</div>
+          <div class="delta" id="h-acct-d">&nbsp;</div>
+        </div>
+        <div class="kpi-follow alt">
+          <div class="lab">投稿による獲得フォロワー</div>
           <div class="big num" id="h-follow">—</div>
           <div class="delta" id="h-follow-d">&nbsp;</div>
+          <div class="subnote" id="h-share">&nbsp;</div>
         </div>
         <div class="meridian"></div>
         <div class="kpi-sub">
@@ -231,6 +245,41 @@
         </tr></thead>
         <tbody id="top-body"></tbody>
       </table>
+    </div>
+  </section>
+
+  <!-- stories -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">05</span><h2>ストーリーズの成果</h2>
+      <span class="note" id="stories-note">—</span></div>
+    <div class="kpirow" id="story-kpis"></div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel">
+        <h3>月別ストーリーズ本数とプロフィール遷移</h3>
+        <div class="sub">棒＝本数、線＝プロフィールへのアクセス（フォローへの導線）。</div>
+        <div class="chartbox"><canvas id="storyTrendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>アクション率（対リーチ）</h3>
+        <div class="sub">ストーリーズがどのアクションに効いているか。リーチを分母にした割合。</div>
+        <div class="chartbox"><canvas id="storyRatesChart"></canvas></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px; padding-top:8px">
+      <table>
+        <thead><tr>
+          <th></th>
+          <th>ストーリーズ（公開日／冒頭）</th>
+          <th class="n">リーチ数</th>
+          <th class="n">ビュー</th>
+          <th class="n">プロフ<br>遷移</th>
+          <th class="n">リンク<br>クリック</th>
+          <th class="n">いいね数</th>
+          <th class="n">獲得<br>フォロー</th>
+        </tr></thead>
+        <tbody id="story-top-body"></tbody>
+      </table>
+      <div class="sub" style="margin-top:8px">※ リーチ上位10件を表示</div>
     </div>
   </section>
 
@@ -332,12 +381,28 @@ function deltaHTML(cur, prev, kind){
   return `<span class="delta ${cls}">前月比 ${arrow}${Math.abs(Math.round(ch))}%</span>`;
 }
 
+function accountFollows(m){
+  if(!FOLLOWER_DATA.length) return null;
+  if(m==='ALL') return FOLLOWER_DATA.reduce((a,p)=>a+p.v,0);
+  return FOLLOWER_DATA.filter(p=>monthKey(p.d)===m).reduce((a,p)=>a+p.v,0);
+}
+function prevCalMonth(m){ const [y,mo]=m.split('-').map(Number); return monthKey(new Date(y,mo-2,1)); }
+
 function renderHero(m){
   const cur=agg(rowsIn(m));
   const ms=months(); let prev=null;
   if(m!=='ALL'){ const i=ms.indexOf(m); if(i>0) prev=agg(rowsIn(ms[i-1])); }
+  // 投稿による獲得（投稿に紐づく分）
   document.getElementById('h-follow').textContent=fmt(cur.follows);
   document.getElementById('h-follow-d').innerHTML=deltaHTML(cur.follows, prev?prev.follows:null);
+  // アカウント全体での獲得（日次フォロワーCSVより）
+  const acct=accountFollows(m);
+  const acctPrev=(m==='ALL')?null:accountFollows(prevCalMonth(m));
+  document.getElementById('h-acct').textContent=(acct==null)?'—':fmt(acct);
+  document.getElementById('h-acct-d').innerHTML=(acct==null)?'<span class="delta flat">前月比 —</span>':deltaHTML(acct, acctPrev);
+  const shareEl=document.getElementById('h-share');
+  if(acct && acct>0){ shareEl.textContent='うち投稿経由 '+Math.round(cur.follows/acct*100)+'%'; }
+  else { shareEl.innerHTML='&nbsp;'; }
   document.getElementById('h-cvr').textContent=pct(cur.cvr);
   document.getElementById('h-cvr-d').innerHTML=deltaHTML(cur.cvr, prev?prev.cvr:null);
   document.getElementById('h-per').textContent=fmt1(cur.per);
@@ -425,7 +490,9 @@ function parseFollowerRows(text){
   return out;
 }
 function loadFollowers(rows, srcLabel){
-  FOLLOWER_DATA=rows; if(srcLabel!=null) FOLLOWER_SRC=srcLabel; renderFollowerTrend();
+  FOLLOWER_DATA=rows; if(srcLabel!=null) FOLLOWER_SRC=srcLabel;
+  renderFollowerTrend();
+  if(DATA.length) renderHero(currentMonth()); // アカウント全体の獲得をヒーローに反映
 }
 const dayKey=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
 function renderFollowerTrend(){
@@ -483,6 +550,137 @@ async function loadFollowersFromSheet(url){
     if(!rows.length) throw new Error('行を読み取れません');
     loadFollowers(rows,'Sheets取得 '+new Date().toLocaleDateString('ja-JP'));
   }catch(e){ console.warn('follower fetch failed:',e.message); }
+}
+
+/* ---------- Stories (3rd source) ---------- */
+let STORIES_DATA=[]; let STORIES_SRC='';
+function rowsFromStoriesCSV(text){
+  const raw=parseCSV(text).filter(r=>r.length>1);
+  if(!raw.length) return [];
+  const head=raw[0].map(h=>h.trim());
+  const idx=name=>head.findIndex(h=>h===name);
+  const ci={pub:idx('公開時間'),cap:idx('説明'),views:idx('ビュー'),reach:idx('リーチ'),
+    likes:idx('いいね！の数'),shares:idx('シェア数'),profile:idx('プロフィールへのアクセス'),
+    replies:idx('返信'),nav:idx('ナビゲーション'),follows:idx('フォロー数'),
+    link:idx('リンククリック'),sticker:idx('スタンプのタップ')};
+  const num=v=>{const n=parseInt((v||'').replace(/[^\d-]/g,''),10); return isNaN(n)?0:n;};
+  const out=[];
+  for(let i=1;i<raw.length;i++){
+    const r=raw[i]; if(ci.pub<0||!r[ci.pub]) continue;
+    out.push({publish:r[ci.pub], cap:(r[ci.cap]||'').replace(/\s+/g,' ').trim().slice(0,50),
+      views:num(r[ci.views]),reach:num(r[ci.reach]),likes:num(r[ci.likes]),shares:num(r[ci.shares]),
+      profile:num(r[ci.profile]),replies:num(r[ci.replies]),nav:num(r[ci.nav]),
+      follows:num(r[ci.follows]),linkClicks:num(r[ci.link]),stickerTaps:num(r[ci.sticker])});
+  }
+  return out;
+}
+function prepStories(rows){
+  return rows.map(r=>{ const d=parsePublish(r.publish); return {...r,_d:d,_m:d?monthKey(d):'?'}; }).filter(r=>r._d);
+}
+function storiesIn(m){ return m==='ALL'?STORIES_DATA:STORIES_DATA.filter(r=>r._m===m); }
+function storyMonths(){ return [...new Set(STORIES_DATA.map(r=>r._m))].sort(); }
+function loadStories(rows, srcLabel){
+  STORIES_DATA=prepStories(rows); if(srcLabel!=null) STORIES_SRC=srcLabel;
+  renderStories(currentMonth());
+}
+async function loadStoriesFromSheet(url){
+  try{
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=rowsFromStoriesCSV(await res.text());
+    if(!rows.length) throw new Error('行を読み取れません');
+    loadStories(rows,'Sheets取得 '+new Date().toLocaleDateString('ja-JP'));
+  }catch(e){ console.warn('stories fetch failed:',e.message); }
+}
+function storyAgg(rows){
+  const s=k=>rows.reduce((a,r)=>a+r[k],0);
+  return {n:rows.length, reach:s('reach'), views:s('views'), profile:s('profile'),
+    linkClicks:s('linkClicks'), follows:s('follows'), likes:s('likes'),
+    stickerTaps:s('stickerTaps'), replies:s('replies')};
+}
+function renderStories(m){
+  const note=document.getElementById('stories-note');
+  const rows=storiesIn(m);
+  const a=storyAgg(rows);
+  // KPIカード
+  const box=document.getElementById('story-kpis');
+  if(box){
+    if(!rows.length){ box.innerHTML='<div class="kpicard"><div class="lab">この月のストーリーズはありません</div><div class="v">—</div></div>'; }
+    else{
+      const cards=[
+        ['ストーリーズ本数', fmt(a.n), ''],
+        ['合計リーチ', fmt(a.reach), ''],
+        ['プロフィールへのアクセス', fmt(a.profile), 'accent'],
+        ['リンククリック', fmt(a.linkClicks), ''],
+        ['獲得フォロー', fmt(a.follows), 'accent'],
+      ];
+      box.innerHTML=cards.map(([l,v,c])=>`<div class="kpicard ${c}"><div class="lab">${l}</div><div class="v num">${v}</div></div>`).join('');
+    }
+  }
+  if(note){
+    if(!STORIES_DATA.length){ note.textContent='データがありません'; }
+    else{
+      const sm=storyMonths();
+      note.textContent=`全期間 ${monthLabel(sm[0])}〜${monthLabel(sm[sm.length-1])} ／ 全${STORIES_DATA.length}本`
+        + (STORIES_SRC?` ／ ${STORIES_SRC}`:'');
+    }
+  }
+  renderStoryTrend();
+  renderStoryRates(m);
+  renderStoryTop(m);
+}
+function renderStoryTrend(){
+  const ms=storyMonths();
+  const cnt=ms.map(m=>storiesIn(m).length);
+  const profile=ms.map(m=>storyAgg(storiesIn(m)).profile);
+  destroy('storytrend');
+  const el=document.getElementById('storyTrendChart'); if(!el) return;
+  CHARTS.storytrend=new Chart(el,{
+    data:{labels:ms.map(monthLabel),datasets:[
+      {type:'bar',label:'本数',data:cnt,backgroundColor:'#5E7A9B',borderRadius:5,yAxisID:'y',order:2},
+      {type:'line',label:'プロフィールへのアクセス',data:profile,borderColor:'#E8502E',backgroundColor:'#E8502E',borderWidth:2.5,pointRadius:3,tension:.3,yAxisID:'y1',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{
+        y:{position:'left',grid:GRID,ticks:{...TICK,precision:0},title:{display:true,text:'本数',color:'#5E7A9B',font:{size:10}}},
+        y1:{position:'right',grid:{display:false},ticks:TICK,title:{display:true,text:'プロフ遷移',color:'#E8502E',font:{size:10}}},
+        x:{grid:{display:false},ticks:TICK}
+      }}
+  });
+}
+function renderStoryRates(m){
+  const a=storyAgg(storiesIn(m));
+  const el=document.getElementById('storyRatesChart'); if(!el) return;
+  const rate=x=>a.reach? x/a.reach*100 : 0;
+  const labels=['プロフィール遷移率','リンククリック率','いいね率','フォロー率'];
+  const vals=[rate(a.profile),rate(a.linkClicks),rate(a.likes),rate(a.follows)];
+  destroy('storyrates');
+  CHARTS.storyrates=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:['#E8502E','#EE8B73','#9DB0C4','#C53B1C'],borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toFixed(2)+'%（対リーチ）'}}},
+      scales:{x:{grid:GRID,ticks:{...TICK,callback:v=>v+'%'},beginAtZero:true},
+        y:{grid:{display:false},ticks:{...TICK,font:{size:11}}}}}
+  });
+}
+function renderStoryTop(m){
+  const rows=[...storiesIn(m)].sort((a,b)=>b.reach-a.reach).slice(0,10);
+  const tb=document.getElementById('story-top-body'); if(!tb) return;
+  tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const d=r._d, dl=(d.getMonth()+1)+'/'+d.getDate();
+    const label=r.cap?`${dl} ${r.cap}`:`${dl}（キャプションなし）`;
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td class="rank">${i+1}</td>
+       <td class="cap" title="${(label).replace(/"/g,'&quot;')}">${label}</td>
+       <td class="n">${fmt(r.reach)}</td>
+       <td class="n">${fmt(r.views)}</td>
+       <td class="n"><span class="fw">${fmt(r.profile)}</span></td>
+       <td class="n">${fmt(r.linkClicks)}</td>
+       <td class="n">${fmt(r.likes)}</td>
+       <td class="n">${fmt(r.follows)}</td></tr>`);
+  });
 }
 
 function renderPostTypeTrend(){
@@ -597,10 +795,15 @@ function renderRange(){
     `<br><b>公開範囲について：</b>「ウェブに公開」したCSVは、URLを知っていれば誰でも閲覧できる状態になります。キャプションや数値もこのHTMLを通じて公開されるため、外部に出したくない列はシートに含めないでください。`;
 }
 
+function currentMonth(){
+  const s=document.getElementById('month');
+  if(s && s.value) return s.value;
+  const ms=months(); return ms.length?ms[ms.length-1]:'ALL';
+}
 function renderAll(){
   const m=document.getElementById('month').value;
   renderHero(m); renderPlan(m); renderTrend(); renderPostTypeTrend();
-  renderScatter(m); renderTop(m);
+  renderScatter(m); renderTop(m); renderStories(m);
 }
 
 function buildMonthOptions(){
@@ -635,6 +838,10 @@ const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5
    URLを貼り付けると差し替わります。空ならば埋め込みサンプルを表示します。 */
 const FOLLOWER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=931416063&single=true&output=csv"; // アカウント全体・日次フォロワーCSVの公開URL
 const FOLLOWER_SEED = [["2026-01-01", 2], ["2026-01-02", 4], ["2026-01-03", 1], ["2026-01-04", 2], ["2026-01-05", 2], ["2026-01-07", 4], ["2026-01-08", 4], ["2026-01-09", 4], ["2026-01-10", 2], ["2026-01-11", 4], ["2026-01-13", 2], ["2026-01-14", 5], ["2026-01-16", 2], ["2026-01-17", 14], ["2026-01-18", 4], ["2026-01-19", 4], ["2026-01-20", 1], ["2026-01-21", 1], ["2026-01-22", 1], ["2026-01-23", 6], ["2026-01-24", 1], ["2026-01-25", 1], ["2026-01-26", 4], ["2026-01-27", 2], ["2026-01-28", 5], ["2026-01-29", 3], ["2026-01-30", 3], ["2026-02-01", 5], ["2026-02-02", 5], ["2026-02-03", 2], ["2026-02-04", 2], ["2026-02-05", 2], ["2026-02-06", 8], ["2026-02-07", 1], ["2026-02-08", 3], ["2026-02-09", 5], ["2026-02-10", 2], ["2026-02-11", 2], ["2026-02-12", 2], ["2026-02-14", 3], ["2026-02-15", 3], ["2026-02-16", 7], ["2026-02-17", 5], ["2026-02-18", 1], ["2026-02-19", 7], ["2026-02-20", 5], ["2026-02-21", 2], ["2026-02-22", 3], ["2026-02-23", 2], ["2026-02-24", 3], ["2026-02-25", 5], ["2026-02-26", 2], ["2026-02-27", 4], ["2026-02-28", 3], ["2026-03-01", 1], ["2026-03-02", 2], ["2026-03-03", 5], ["2026-03-04", 7], ["2026-03-05", 2], ["2026-03-06", 5], ["2026-03-07", 1], ["2026-03-08", 2], ["2026-03-09", 20], ["2026-03-10", 13], ["2026-03-11", 4], ["2026-03-12", 3], ["2026-03-13", 2], ["2026-03-14", 5], ["2026-03-15", 1], ["2026-03-16", 1], ["2026-03-17", 3], ["2026-03-18", 3], ["2026-03-19", 5], ["2026-03-20", 4], ["2026-03-21", 2], ["2026-03-22", 4], ["2026-03-23", 4], ["2026-03-25", 2], ["2026-03-26", 4], ["2026-03-27", 6], ["2026-03-28", 3], ["2026-03-30", 3], ["2026-03-31", 3], ["2026-04-01", 1], ["2026-04-02", 4], ["2026-04-03", 5], ["2026-04-04", 2], ["2026-04-05", 1], ["2026-04-07", 3], ["2026-04-08", 1], ["2026-04-09", 2], ["2026-04-10", 9], ["2026-04-11", 1], ["2026-04-12", 6], ["2026-04-13", 2], ["2026-04-14", 2], ["2026-04-16", 2], ["2026-04-17", 4], ["2026-04-19", 1], ["2026-04-20", 2], ["2026-04-22", 3], ["2026-04-23", 2], ["2026-04-24", 2], ["2026-04-25", 1], ["2026-04-28", 2], ["2026-04-29", 2], ["2026-04-30", 3], ["2026-05-01", 22], ["2026-05-02", 20], ["2026-05-03", 1], ["2026-05-04", 12], ["2026-05-05", 11], ["2026-05-06", 5], ["2026-05-07", 1], ["2026-05-08", 8], ["2026-05-09", 7], ["2026-05-10", 8], ["2026-05-11", 11], ["2026-05-12", 6], ["2026-05-13", 5], ["2026-05-14", 10], ["2026-05-15", 11], ["2026-05-16", 6], ["2026-05-17", 8], ["2026-05-18", 8], ["2026-05-19", 2], ["2026-05-20", 6], ["2026-05-21", 3], ["2026-05-22", 19], ["2026-05-23", 26], ["2026-05-24", 11], ["2026-05-25", 17], ["2026-05-26", 13], ["2026-05-27", 17], ["2026-05-28", 21], ["2026-05-29", 22], ["2026-05-30", 15], ["2026-05-31", 6], ["2026-06-01", 10], ["2026-06-02", 11], ["2026-06-03", 6], ["2026-06-04", 8], ["2026-06-05", 6], ["2026-06-06", 6], ["2026-06-07", 8], ["2026-06-08", 20], ["2026-06-09", 9], ["2026-06-10", 10], ["2026-06-11", 7], ["2026-06-12", 26], ["2026-06-13", 12], ["2026-06-14", 9], ["2026-06-15", 17], ["2026-06-16", 8], ["2026-06-17", 18]];
+
+/* 第3データソース：ストーリーズのコンテンツ別CSV（公開URL） */
+const STORIES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSFdnw2r5wnlmbH8rOVX0IEEc-9c8qfvbqTUOVqpJV2VysuCkZ5TViRN4_zvMhaDSSj80HuLKr56_eP/pub?gid=1706529161&single=true&output=csv";
+const STORIES_SEED = [{"publish": "04/11/2026 01:01", "cap": "", "views": 445, "reach": 364, "likes": 11, "shares": 0, "profile": 3, "replies": 0, "nav": 367, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/10/2026 20:47", "cap": "来週も開催しますので、 ぜひご参加ください🙇‍♀️ 本日のオンライン大学説明会は 終了いたしました。", "views": 386, "reach": 314, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 313, "follows": 0, "linkClicks": 3, "stickerTaps": 0}, {"publish": "06/29/2026 02:28", "cap": "から選択できるのが特徴です🙌🏼 仙台育英高校のIBコースは  English Language DP", "views": 3954, "reach": 3381, "likes": 12, "shares": 1, "profile": 5, "replies": 0, "nav": 648, "follows": 0, "linkClicks": 0, "stickerTaps": 3}, {"publish": "06/29/2026 02:24", "cap": "IB生に質問です🙋 履修している（履修予定）の IBDPは何語？", "views": 883, "reach": 645, "likes": 11, "shares": 0, "profile": 5, "replies": 1, "nav": 709, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/27/2026 01:00", "cap": "", "views": 378, "reach": 272, "likes": 4, "shares": 0, "profile": 3, "replies": 0, "nav": 311, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/26/2026 23:10", "cap": "本日のIB生向け大学説明会は 終了いたしました。 ご参加ありがとうございました🙇‍♀️ ただいま、大", "views": 387, "reach": 293, "likes": 8, "shares": 0, "profile": 5, "replies": 0, "nav": 312, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/26/2026 20:47", "cap": "13時より、IB生向け オンライン大学説明会を 開始します！", "views": 115, "reach": 87, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 88, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "06/26/2026 02:04", "cap": "海外大学は 受けないべき？ キャプションも 要チェック👀 受けるべき？", "views": 389, "reach": 298, "likes": 10, "shares": 0, "profile": 3, "replies": 0, "nav": 328, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/24/2026 02:03", "cap": "🌻この夏 オープンキャンパスに行く人は まずはこれ読んで🫡 【保存版】", "views": 338, "reach": 264, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 274, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/23/2026 02:21", "cap": "仙台育英学園 秀光コース（IB）の伊原さんに インタビューしました🎙️", "views": 402, "reach": 313, "likes": 8, "shares": 0, "profile": 6, "replies": 1, "nav": 333, "follows": 0, "linkClicks": 2, "stickerTaps": 4}, {"publish": "06/22/2026 02:02", "cap": "東大に受かる 時間管理術👀", "views": 434, "reach": 347, "likes": 10, "shares": 1, "profile": 6, "replies": 0, "nav": 363, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/20/2026 01:00", "cap": "", "views": 425, "reach": 321, "likes": 8, "shares": 0, "profile": 2, "replies": 0, "nav": 346, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/19/2026 23:38", "cap": "本日のオンライン大学説明会は 終了いたしました。 ご参加ありがとうございました🙇‍♀️ 来週もIB生", "views": 453, "reach": 346, "likes": 7, "shares": 0, "profile": 7, "replies": 0, "nav": 338, "follows": 1, "linkClicks": 3, "stickerTaps": 0}, {"publish": "06/19/2026 20:38", "cap": "英語で学ぶプログラムが 気になっているなら ぜひ参加してみて👀 いよいよ13時からは、 オンライン大", "views": 140, "reach": 103, "likes": 3, "shares": 0, "profile": 2, "replies": 0, "nav": 112, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "06/19/2026 02:03", "cap": "Paperは自分のセンスで書いては‪✕‬ criteriaを意識してみて！", "views": 530, "reach": 407, "likes": 10, "shares": 0, "profile": 12, "replies": 0, "nav": 444, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/18/2026 02:07", "cap": "仙台育英学園秀光コース DP2生にインタビュー🎙️", "views": 438, "reach": 340, "likes": 10, "shares": 0, "profile": 14, "replies": 0, "nav": 366, "follows": 0, "linkClicks": 0, "stickerTaps": 2}, {"publish": "06/16/2026 22:25", "cap": "Pre-IB生の先取り学習なら、 夏期講習がぴったり！", "views": 295, "reach": 233, "likes": 7, "shares": 0, "profile": 3, "replies": 0, "nav": 260, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "06/16/2026 22:16", "cap": "たとえば…", "views": 321, "reach": 259, "likes": 9, "shares": 0, "profile": 3, "replies": 0, "nav": 285, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "06/16/2026 22:14", "cap": "IBの勉強に使えるWebsiteをご紹介！", "views": 411, "reach": 292, "likes": 10, "shares": 0, "profile": 3, "replies": 0, "nav": 325, "follows": 0, "linkClicks": 7, "stickerTaps": 0}, {"publish": "06/15/2026 02:07", "cap": "AICJ高等学校取材リールも チェックしてね", "views": 344, "reach": 285, "likes": 10, "shares": 0, "profile": 3, "replies": 0, "nav": 303, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/15/2026 02:03", "cap": "現役IB生に聞いてみた！", "views": 440, "reach": 337, "likes": 12, "shares": 0, "profile": 10, "replies": 0, "nav": 354, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/13/2026 01:00", "cap": "", "views": 388, "reach": 290, "likes": 6, "shares": 2, "profile": 5, "replies": 0, "nav": 310, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/12/2026 23:19", "cap": "IBDP夏期講習 お申し込みたくさん ありがとうございます🙇‍♀️  まだ申込間に合います！ 豊富な", "views": 402, "reach": 294, "likes": 8, "shares": 0, "profile": 5, "replies": 0, "nav": 331, "follows": 0, "linkClicks": 9, "stickerTaps": 0}, {"publish": "06/12/2026 23:07", "cap": "本日のオンライン大学説明会は 終了いたしました。 ありがとうございました！ 来週も開催いたしますので", "views": 468, "reach": 350, "likes": 9, "shares": 0, "profile": 4, "replies": 0, "nav": 353, "follows": 1, "linkClicks": 5, "stickerTaps": 0}, {"publish": "06/12/2026 20:32", "cap": "IB生向け オンライン大学説明会 あと30分程で開催です！", "views": 108, "reach": 89, "likes": 3, "shares": 0, "profile": 1, "replies": 0, "nav": 95, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/12/2026 02:04", "cap": "国内IB校を取材しました！", "views": 543, "reach": 390, "likes": 12, "shares": 0, "profile": 11, "replies": 0, "nav": 429, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/09/2026 19:00", "cap": "大学進学の不安を解消🥹", "views": 480, "reach": 363, "likes": 8, "shares": 1, "profile": 8, "replies": 0, "nav": 277, "follows": 1, "linkClicks": 8, "stickerTaps": 0}, {"publish": "06/08/2026 23:19", "cap": "岡山大学をはじめ IB生を受け入れる大学が登壇する オンライン大学説明会は今週末開催！", "views": 345, "reach": 264, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 291, "follows": 0, "linkClicks": 3, "stickerTaps": 0}, {"publish": "06/08/2026 23:17", "cap": "なぜ岡山大学はIB生に選ばれるのか？その魅力の核心に迫ります。 NewBlog", "views": 406, "reach": 321, "likes": 4, "shares": 0, "profile": 5, "replies": 0, "nav": 330, "follows": 0, "linkClicks": 9, "stickerTaps": 0}, {"publish": "06/08/2026 02:14", "cap": "国立大学で 最もIB生が多い大学🔥 EDUBALが取材してきました✨", "views": 672, "reach": 466, "likes": 14, "shares": 0, "profile": 4, "replies": 0, "nav": 570, "follows": 1, "linkClicks": 0, "stickerTaps": 8}, {"publish": "06/08/2026 02:10", "cap": "IB生に質問です🙋 IB入試で日本の大学を 受験するなら…", "views": 733, "reach": 560, "likes": 6, "shares": 0, "profile": 8, "replies": 0, "nav": 539, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/06/2026 01:01", "cap": "", "views": 440, "reach": 351, "likes": 4, "shares": 0, "profile": 5, "replies": 0, "nav": 363, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/05/2026 02:13", "cap": "IBコース取材リールも見てね💕︎", "views": 334, "reach": 278, "likes": 8, "shares": 0, "profile": 5, "replies": 0, "nav": 302, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/05/2026 02:10", "cap": "現役IB生に聞いてみた！", "views": 388, "reach": 325, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 342, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/04/2026 01:15", "cap": "リールもチェックしてね👀", "views": 344, "reach": 284, "likes": 10, "shares": 0, "profile": 5, "replies": 0, "nav": 307, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/04/2026 01:09", "cap": "📚New Blog IBの経験ってICUでどう活きるの？ 在学生インタビューでリアルな学び・入試対策", "views": 407, "reach": 335, "likes": 11, "shares": 0, "profile": 3, "replies": 0, "nav": 316, "follows": 1, "linkClicks": 9, "stickerTaps": 0}, {"publish": "06/03/2026 02:04", "cap": "成績については こちらも読んでみてね🙇‍♀️", "views": 300, "reach": 225, "likes": 10, "shares": 0, "profile": 2, "replies": 0, "nav": 258, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/03/2026 02:02", "cap": "近年の平均点、 気になりませんか…？ 投稿をチェックしてね🤫", "views": 384, "reach": 283, "likes": 10, "shares": 0, "profile": 2, "replies": 0, "nav": 294, "follows": 0, "linkClicks": 5, "stickerTaps": 0}, {"publish": "06/01/2026 03:30", "cap": "", "views": 359, "reach": 298, "likes": 7, "shares": 0, "profile": 3, "replies": 0, "nav": 323, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "06/01/2026 02:09", "cap": "岡山理科大学附属高等学校の IBコースを取材しました！", "views": 488, "reach": 374, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 427, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/31/2026 01:01", "cap": "", "views": 403, "reach": 321, "likes": 9, "shares": 0, "profile": 4, "replies": 0, "nav": 347, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/30/2026 04:16", "cap": "🔵 昨日は仙台育英高校秀光コースを取材 大勢のIB生に会えて感激でした😭 仙台育英IB生は タップし", "views": 804, "reach": 561, "likes": 18, "shares": 0, "profile": 31, "replies": 0, "nav": 672, "follows": 0, "linkClicks": 0, "stickerTaps": 8}, {"publish": "05/30/2026 01:00", "cap": "", "views": 809, "reach": 583, "likes": 11, "shares": 0, "profile": 14, "replies": 0, "nav": 593, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/29/2026 02:14", "cap": "ICUの出張オープンキャンパスは 6月開催だそうです ⬇️以下投稿をチェックしてみて⬇️ 7/4には", "views": 353, "reach": 288, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 298, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/29/2026 02:07", "cap": "ICUに進学した元IB生✨ ・なぜICUを選んだの？ ・ICUの好きなところは？ ・IB生へのメッセ", "views": 423, "reach": 335, "likes": 9, "shares": 0, "profile": 15, "replies": 0, "nav": 357, "follows": 2, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/28/2026 03:00", "cap": "", "views": 362, "reach": 286, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 287, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/27/2026 02:02", "cap": "IBDPの成績のきまり方について まとめました！ IBDP基礎知識", "views": 331, "reach": 244, "likes": 8, "shares": 0, "profile": 1, "replies": 0, "nav": 274, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/27/2026 01:41", "cap": "あの大学ってどんなことが学べるんだろう？🤔 IB入試のこと知らないけど参加していいのかな？😢  説明", "views": 334, "reach": 262, "likes": 7, "shares": 0, "profile": 2, "replies": 0, "nav": 291, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/27/2026 01:32", "cap": "IB生向け オンライン大学説明会 すでに多くのお申し込みを いただいております🙇‍♀️ 第1回目 6", "views": 410, "reach": 314, "likes": 11, "shares": 0, "profile": 7, "replies": 0, "nav": 323, "follows": 0, "linkClicks": 3, "stickerTaps": 0}, {"publish": "05/26/2026 03:00", "cap": "", "views": 258, "reach": 212, "likes": 6, "shares": 0, "profile": 4, "replies": 0, "nav": 232, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/26/2026 02:08", "cap": "詳細なスケジュール・講師陣については、 WEBページをご覧ください🙇‍♀️", "views": 254, "reach": 206, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 220, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/26/2026 02:04", "cap": "", "views": 357, "reach": 286, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 226, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/26/2026 02:02", "cap": "", "views": 405, "reach": 324, "likes": 4, "shares": 0, "profile": 2, "replies": 0, "nav": 239, "follows": 0, "linkClicks": 3, "stickerTaps": 0}, {"publish": "05/26/2026 02:01", "cap": "IBDP夏期講習のお知らせ", "views": 339, "reach": 262, "likes": 3, "shares": 1, "profile": 7, "replies": 0, "nav": 273, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/25/2026 03:30", "cap": "", "views": 290, "reach": 254, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 254, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/25/2026 02:08", "cap": "EEのテーマで悩んでる人必見👀", "views": 418, "reach": 320, "likes": 15, "shares": 0, "profile": 7, "replies": 0, "nav": 329, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/24/2026 01:00", "cap": "", "views": 367, "reach": 299, "likes": 6, "shares": 0, "profile": 14, "replies": 0, "nav": 305, "follows": 2, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/23/2026 01:01", "cap": "", "views": 520, "reach": 399, "likes": 9, "shares": 0, "profile": 5, "replies": 0, "nav": 401, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/22/2026 02:06", "cap": "5点変わった これやったから IBハック", "views": 457, "reach": 348, "likes": 14, "shares": 1, "profile": 7, "replies": 0, "nav": 371, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/21/2026 03:00", "cap": "", "views": 334, "reach": 256, "likes": 6, "shares": 0, "profile": 4, "replies": 0, "nav": 271, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/20/2026 02:34", "cap": "IB入試を実施する 首都圏の大学をピックアップ 医学部編 こっちもチェックしてね！", "views": 268, "reach": 204, "likes": 6, "shares": 0, "profile": 3, "replies": 0, "nav": 250, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/20/2026 02:30", "cap": "医学部が気になる！ IB入試を実施する大学 (首都圏以外)をピックアップ", "views": 329, "reach": 242, "likes": 6, "shares": 0, "profile": 0, "replies": 0, "nav": 282, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/19/2026 03:00", "cap": "", "views": 265, "reach": 207, "likes": 5, "shares": 0, "profile": 5, "replies": 0, "nav": 227, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/19/2026 01:39", "cap": "最近暑い日が続いています… 暑さに体が慣れていない時期なので気をつけてね 夏のオープンキャンパスは ", "views": 297, "reach": 226, "likes": 9, "shares": 0, "profile": 2, "replies": 0, "nav": 262, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/19/2026 01:32", "cap": "IB生向け オンライン大学説明会 まだまだ申込受付中📱 お申込の方には 後日録画を お送りします！ ", "views": 343, "reach": 262, "likes": 10, "shares": 0, "profile": 5, "replies": 0, "nav": 277, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "05/19/2026 01:27", "cap": "IB生向け オンライン大月説明会 まだまだ申し込み受付中！", "views": 0, "reach": 0, "likes": 0, "shares": 0, "profile": 0, "replies": 0, "nav": 0, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/18/2026 03:30", "cap": "", "views": 244, "reach": 208, "likes": 7, "shares": 0, "profile": 6, "replies": 0, "nav": 226, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/18/2026 02:05", "cap": "IB生向けセミナーのご案内", "views": 530, "reach": 373, "likes": 9, "shares": 0, "profile": 3, "replies": 0, "nav": 283, "follows": 0, "linkClicks": 18, "stickerTaps": 0}, {"publish": "05/17/2026 01:00", "cap": "", "views": 331, "reach": 286, "likes": 5, "shares": 0, "profile": 7, "replies": 0, "nav": 283, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/16/2026 01:01", "cap": "", "views": 923, "reach": 667, "likes": 16, "shares": 0, "profile": 12, "replies": 0, "nav": 770, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/15/2026 21:13", "cap": "昨日はこの学校を取材 させていただきました🎤 1学年に30人前後のIB生がいるとの事でしたので。 も", "views": 1134, "reach": 772, "likes": 15, "shares": 4, "profile": 19, "replies": 1, "nav": 683, "follows": 0, "linkClicks": 0, "stickerTaps": 44}, {"publish": "05/15/2026 02:12", "cap": "IBスコア44点で ケンブリッジ大学へ！  元IB生にインタビュー🎙 ハイスコアを狙っているIB生必", "views": 605, "reach": 436, "likes": 12, "shares": 0, "profile": 17, "replies": 0, "nav": 410, "follows": 2, "linkClicks": 9, "stickerTaps": 0}, {"publish": "05/14/2026 03:30", "cap": "", "views": 280, "reach": 215, "likes": 6, "shares": 0, "profile": 1, "replies": 0, "nav": 243, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/14/2026 03:29", "cap": "国公立大学で初めて　 IB入試を導入された大学‼️ とってもIBフレンドリーな 🏫岡山大学を取材しま", "views": 282, "reach": 217, "likes": 9, "shares": 1, "profile": 2, "replies": 0, "nav": 242, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/14/2026 03:20", "cap": "岡山理科大附属高校 【IBコース】のみなさん 動画撮影にご協力いただき ありがとうございました😊", "views": 285, "reach": 216, "likes": 11, "shares": 1, "profile": 1, "replies": 0, "nav": 244, "follows": 0, "linkClicks": 0, "stickerTaps": 11}, {"publish": "05/14/2026 03:12", "cap": "今日は岡山まで🚅 学校取材に来ています‼️ まずはここ▶️", "views": 287, "reach": 226, "likes": 9, "shares": 1, "profile": 3, "replies": 0, "nav": 250, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/14/2026 02:11", "cap": "お申し込みいただいた方には、 後日録画を共有します📱 都合が合わなくても大丈夫！", "views": 290, "reach": 226, "likes": 7, "shares": 0, "profile": 1, "replies": 0, "nav": 256, "follows": 0, "linkClicks": 5, "stickerTaps": 0}, {"publish": "05/14/2026 02:08", "cap": "IB入試 総合型選抜 などIB生が受験しやすい入試を実施する9大学 入試担当者から 直接話を聞くこと", "views": 308, "reach": 238, "likes": 9, "shares": 0, "profile": 1, "replies": 1, "nav": 269, "follows": 1, "linkClicks": 1, "stickerTaps": 0}, {"publish": "05/14/2026 02:03", "cap": "オンライン大学説明会 6月開催します！ IB生向け", "views": 846, "reach": 630, "likes": 10, "shares": 2, "profile": 6, "replies": 0, "nav": 292, "follows": 1, "linkClicks": 8, "stickerTaps": 0}, {"publish": "05/13/2026 02:01", "cap": "もっと詳しい情報は ブログでチェックしてね", "views": 323, "reach": 245, "likes": 8, "shares": 0, "profile": 2, "replies": 0, "nav": 274, "follows": 0, "linkClicks": 6, "stickerTaps": 0}, {"publish": "05/12/2026 20:07", "cap": "", "views": 658, "reach": 438, "likes": 12, "shares": 1, "profile": 10, "replies": 0, "nav": 325, "follows": 0, "linkClicks": 14, "stickerTaps": 0}, {"publish": "05/12/2026 03:30", "cap": "", "views": 388, "reach": 305, "likes": 12, "shares": 0, "profile": 8, "replies": 0, "nav": 331, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/11/2026 16:00", "cap": "IBDPスコア45点🔥 勉強スタイルの見つけ方 めちゃくちゃ参考になります  45点（満点）取れる人", "views": 481, "reach": 348, "likes": 12, "shares": 1, "profile": 5, "replies": 0, "nav": 376, "follows": 0, "linkClicks": 0, "stickerTaps": 5}, {"publish": "05/11/2026 03:54", "cap": "IB低くても大丈夫！？", "views": 308, "reach": 231, "likes": 10, "shares": 1, "profile": 3, "replies": 0, "nav": 253, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/11/2026 03:30", "cap": "", "views": 345, "reach": 288, "likes": 7, "shares": 0, "profile": 13, "replies": 0, "nav": 297, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/10/2026 01:01", "cap": "", "views": 247, "reach": 217, "likes": 4, "shares": 0, "profile": 6, "replies": 0, "nav": 214, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/09/2026 01:00", "cap": "", "views": 644, "reach": 460, "likes": 12, "shares": 0, "profile": 11, "replies": 0, "nav": 487, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/08/2026 02:42", "cap": "IB生に大人気の 上智大学を取材しました！ 上智大学のおすすめポイントは キャプションをチェック👀", "views": 434, "reach": 329, "likes": 13, "shares": 0, "profile": 9, "replies": 0, "nav": 359, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/07/2026 03:30", "cap": "", "views": 294, "reach": 232, "likes": 5, "shares": 0, "profile": 5, "replies": 0, "nav": 245, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/06/2026 02:07", "cap": "IBでの授業で培うスキルや能力は、 大学生活や社会に出てからも 役立ちます！ どう言ったスキルかと言", "views": 345, "reach": 269, "likes": 9, "shares": 0, "profile": 9, "replies": 0, "nav": 283, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/05/2026 03:30", "cap": "", "views": 304, "reach": 245, "likes": 7, "shares": 0, "profile": 7, "replies": 0, "nav": 259, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/04/2026 03:30", "cap": "", "views": 326, "reach": 265, "likes": 4, "shares": 0, "profile": 7, "replies": 0, "nav": 286, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/04/2026 02:12", "cap": "👀Japanese苦手な人必見👀", "views": 420, "reach": 324, "likes": 8, "shares": 0, "profile": 12, "replies": 0, "nav": 346, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/03/2026 01:00", "cap": "", "views": 326, "reach": 264, "likes": 6, "shares": 1, "profile": 3, "replies": 0, "nav": 263, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/02/2026 01:00", "cap": "", "views": 754, "reach": 544, "likes": 9, "shares": 0, "profile": 7, "replies": 0, "nav": 555, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "05/01/2026 02:14", "cap": "勉強法に迷走しているIB生必見👀", "views": 415, "reach": 313, "likes": 12, "shares": 0, "profile": 7, "replies": 0, "nav": 353, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/30/2026 21:52", "cap": "世界中のIB生を 応援したい📣🔥", "views": 459, "reach": 363, "likes": 9, "shares": 0, "profile": 10, "replies": 0, "nav": 404, "follows": 3, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/30/2026 03:30", "cap": "", "views": 297, "reach": 258, "likes": 4, "shares": 0, "profile": 4, "replies": 0, "nav": 261, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/29/2026 02:04", "cap": "詳細は、 大学公式サイトをチェックしてね！ 6月開催の オープンキャンパス情報📣", "views": 304, "reach": 258, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 256, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/28/2026 03:30", "cap": "", "views": 280, "reach": 232, "likes": 3, "shares": 0, "profile": 1, "replies": 0, "nav": 227, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/27/2026 03:30", "cap": "", "views": 208, "reach": 171, "likes": 2, "shares": 0, "profile": 1, "replies": 0, "nav": 184, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/27/2026 02:03", "cap": "総合型選抜攻略セミナー お申し込み受け付け中です🔥", "views": 291, "reach": 224, "likes": 5, "shares": 0, "profile": 6, "replies": 0, "nav": 235, "follows": 0, "linkClicks": 2, "stickerTaps": 0}, {"publish": "04/26/2026 01:00", "cap": "", "views": 275, "reach": 233, "likes": 5, "shares": 0, "profile": 2, "replies": 0, "nav": 231, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/25/2026 01:00", "cap": "", "views": 602, "reach": 454, "likes": 12, "shares": 0, "profile": 10, "replies": 0, "nav": 470, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/23/2026 03:30", "cap": "", "views": 183, "reach": 160, "likes": 3, "shares": 0, "profile": 1, "replies": 0, "nav": 164, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/22/2026 02:05", "cap": "デメリット 一般入試は厳しいかも…", "views": 234, "reach": 186, "likes": 4, "shares": 0, "profile": 1, "replies": 0, "nav": 202, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/22/2026 02:05", "cap": "メリット01 IB入試という選択肢 デメリットを言うなら…▶︎", "views": 237, "reach": 196, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 205, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/22/2026 02:03", "cap": "IBが大学入試に どのように影響するか まとめました！ メリット▶︎", "views": 271, "reach": 220, "likes": 5, "shares": 0, "profile": 1, "replies": 0, "nav": 229, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/21/2026 03:30", "cap": "", "views": 201, "reach": 175, "likes": 6, "shares": 0, "profile": 0, "replies": 0, "nav": 180, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/21/2026 02:41", "cap": "「ワーキングメモリ」という言葉 聞いたことはありますか？  なんだか集中できない…😫 それストレスじ", "views": 253, "reach": 204, "likes": 6, "shares": 0, "profile": 1, "replies": 0, "nav": 222, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/20/2026 03:30", "cap": "", "views": 196, "reach": 167, "likes": 7, "shares": 0, "profile": 2, "replies": 0, "nav": 170, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/19/2026 23:02", "cap": "帰国生向け コラボセミナー開催✨", "views": 361, "reach": 280, "likes": 5, "shares": 0, "profile": 0, "replies": 0, "nav": 216, "follows": 0, "linkClicks": 15, "stickerTaps": 0}, {"publish": "04/19/2026 01:01", "cap": "", "views": 262, "reach": 222, "likes": 5, "shares": 0, "profile": 2, "replies": 0, "nav": 230, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/18/2026 01:01", "cap": "", "views": 385, "reach": 306, "likes": 5, "shares": 0, "profile": 3, "replies": 0, "nav": 303, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/17/2026 20:21", "cap": "本日のオンライン大学説明会は 終了したしました 2週にわたり、 ありがとうございました🙇‍♀️", "views": 322, "reach": 264, "likes": 4, "shares": 0, "profile": 5, "replies": 0, "nav": 270, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/17/2026 17:23", "cap": "おはようございます！ 9:30より オンライン大学説明会 開始です！ ご参加お待ちしております", "views": 58, "reach": 51, "likes": 2, "shares": 0, "profile": 0, "replies": 0, "nav": 50, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/17/2026 02:17", "cap": "IB基礎知識から、 IB受験体験記まで！ 海外大合格体験談もあります 合格の否決は？IB生への イン", "views": 205, "reach": 177, "likes": 5, "shares": 0, "profile": 1, "replies": 0, "nav": 183, "follows": 0, "linkClicks": 4, "stickerTaps": 0}, {"publish": "04/17/2026 02:10", "cap": "IB入試対応大学の情報なら Univ-it! IB生が受験しやすい 総合型選抜の情報もあります", "views": 264, "reach": 215, "likes": 6, "shares": 0, "profile": 0, "replies": 0, "nav": 219, "follows": 0, "linkClicks": 6, "stickerTaps": 0}, {"publish": "04/16/2026 03:30", "cap": "", "views": 214, "reach": 177, "likes": 5, "shares": 0, "profile": 4, "replies": 0, "nav": 189, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/16/2026 03:07", "cap": "IB生の親だからできる サポートって何だろう？ 具体的なお話をお伺いしました🙇‍♀️", "views": 281, "reach": 213, "likes": 3, "shares": 0, "profile": 4, "replies": 0, "nav": 226, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/15/2026 01:28", "cap": "Math AIとは…", "views": 213, "reach": 169, "likes": 3, "shares": 0, "profile": 2, "replies": 0, "nav": 193, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/15/2026 01:27", "cap": "Math AAとは…", "views": 219, "reach": 175, "likes": 4, "shares": 0, "profile": 0, "replies": 0, "nav": 202, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/15/2026 01:26", "cap": "IB Math AAとAIの違いって？", "views": 247, "reach": 191, "likes": 5, "shares": 0, "profile": 2, "replies": 0, "nav": 210, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/14/2026 20:08", "cap": "IB生の大学選び、 ある科目を集中的に勉強したい！ などなど、お気軽にご相談ください  EDUBAL", "views": 248, "reach": 213, "likes": 6, "shares": 0, "profile": 1, "replies": 0, "nav": 179, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/14/2026 20:02", "cap": "オンライン家庭教師 EDUBAL のご紹介", "views": 315, "reach": 260, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 204, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "04/14/2026 03:30", "cap": "", "views": 263, "reach": 208, "likes": 4, "shares": 0, "profile": 4, "replies": 0, "nav": 219, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/13/2026 03:30", "cap": "", "views": 251, "reach": 203, "likes": 5, "shares": 0, "profile": 1, "replies": 0, "nav": 205, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/12/2026 01:00", "cap": "", "views": 291, "reach": 241, "likes": 3, "shares": 0, "profile": 3, "replies": 0, "nav": 248, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/01/2026 02:06", "cap": "あるIB生の 実例をもとに紹介！", "views": 267, "reach": 212, "likes": 8, "shares": 0, "profile": 3, "replies": 0, "nav": 221, "follows": 0, "linkClicks": 2, "stickerTaps": 0}, {"publish": "04/01/2026 02:04", "cap": "DP2年間の流れを紹介！  各科目どのようなスケジュールで 進むかを理解しておこう！", "views": 339, "reach": 253, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 270, "follows": 0, "linkClicks": 4, "stickerTaps": 0}, {"publish": "04/10/2026 19:07", "cap": "間もなくオンライン大学説明会、後半の部開催です！ 立命館大学、桜美林大学、 上智大学が登壇します！", "views": 51, "reach": 41, "likes": 0, "shares": 0, "profile": 0, "replies": 0, "nav": 45, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/10/2026 17:21", "cap": "9:30より、帰国生向けオンライン大学説明会開催です！", "views": 84, "reach": 74, "likes": 2, "shares": 0, "profile": 0, "replies": 0, "nav": 76, "follows": 0, "linkClicks": 1, "stickerTaps": 0}, {"publish": "04/10/2026 01:56", "cap": "登壇大学はこちら！ 〇 【 】", "views": 265, "reach": 200, "likes": 4, "shares": 0, "profile": 1, "replies": 0, "nav": 215, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/10/2026 01:52", "cap": "4/11  9:30からは… 帰国生向けオンライン大学説明会 ご参加 お待ちしております！", "views": 295, "reach": 220, "likes": 5, "shares": 0, "profile": 1, "replies": 0, "nav": 238, "follows": 0, "linkClicks": 8, "stickerTaps": 0}, {"publish": "04/09/2026 03:30", "cap": "", "views": 276, "reach": 230, "likes": 5, "shares": 0, "profile": 0, "replies": 0, "nav": 229, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/08/2026 02:06", "cap": "DP1年生編は こちらから", "views": 226, "reach": 177, "likes": 6, "shares": 0, "profile": 2, "replies": 0, "nav": 199, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/08/2026 02:05", "cap": "DP2年間の流れを紹介！  各科目どのようなスケジュールで進むかを理解しておこう！ 今回はDP2年生", "views": 282, "reach": 215, "likes": 7, "shares": 0, "profile": 6, "replies": 0, "nav": 228, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/07/2026 03:30", "cap": "", "views": 297, "reach": 244, "likes": 6, "shares": 0, "profile": 7, "replies": 0, "nav": 258, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/06/2026 03:30", "cap": "", "views": 251, "reach": 215, "likes": 4, "shares": 0, "profile": 1, "replies": 0, "nav": 230, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/05/2026 23:32", "cap": "IELTSペーパー版は2026年中頃に試験実施を終了、 IELTSコンピューター版へ 移行とのニュー", "views": 325, "reach": 245, "likes": 11, "shares": 0, "profile": 1, "replies": 0, "nav": 262, "follows": 0, "linkClicks": 5, "stickerTaps": 0}, {"publish": "04/05/2026 23:18", "cap": "IELTSってどんな試験か 知っていますか？", "views": 336, "reach": 262, "likes": 9, "shares": 0, "profile": 2, "replies": 0, "nav": 283, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/05/2026 01:01", "cap": "", "views": 304, "reach": 256, "likes": 8, "shares": 0, "profile": 4, "replies": 0, "nav": 260, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/04/2026 01:01", "cap": "", "views": 411, "reach": 339, "likes": 11, "shares": 0, "profile": 5, "replies": 1, "nav": 344, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/03/2026 02:53", "cap": "先延ばし癖を解消するための 3つのSTEP キャプションも 要チェック！", "views": 296, "reach": 237, "likes": 8, "shares": 0, "profile": 4, "replies": 1, "nav": 249, "follows": 1, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/02/2026 03:30", "cap": "", "views": 300, "reach": 253, "likes": 5, "shares": 0, "profile": 4, "replies": 0, "nav": 250, "follows": 0, "linkClicks": 0, "stickerTaps": 0}, {"publish": "04/01/2026 02:30", "cap": "オンライン大学説明会 お申し込み受付中  後日録画配信します！ ※要お申し込み", "views": 236, "reach": 195, "likes": 7, "shares": 0, "profile": 3, "replies": 0, "nav": 198, "follows": 0, "linkClicks": 1, "stickerTaps": 0}];
 
 function setSource(label, ok){
   const el=document.getElementById('src'); if(!el)return;
@@ -690,6 +897,11 @@ document.body.addEventListener('drop',e=>{
                 FOLLOWER_CSV_URL ? '' : 'サンプル');
   const fu=new URLSearchParams(location.search).get('followers') || FOLLOWER_CSV_URL;
   if(fu) loadFollowersFromSheet(fu);
+
+  // ストーリーズ（第3ソース）
+  loadStories(STORIES_SEED, STORIES_CSV_URL ? '' : 'サンプル');
+  const su=new URLSearchParams(location.search).get('stories') || STORIES_CSV_URL;
+  if(su) loadStoriesFromSheet(su);
 })();
 </script>
 </body>
