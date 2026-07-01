@@ -1,0 +1,933 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EDUBAL Instagram ダッシュボード ｜ edubal_more（フォロワー獲得）</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#221A44; --ink-soft:#463F63; --paper:#F8F7FC; --card:#FFFFFF;
+    --signal:#6D48E5; --signal-deep:#5433C4; --signal-wash:#EAE4FB;
+    --slate:#6E76A8; --slate-soft:#AAA9CE; --slate-wash:#EEEEF7;
+    --hair:#E6E3EF; --muted:#847F91;
+    --font:"Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+    font-variant-numeric:tabular-nums;
+  }
+  .wrap{max-width:1120px; margin:0 auto; padding:28px 22px 80px}
+  .num{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
+
+  /* account switcher */
+  .switch{display:inline-flex; align-items:center; gap:2px; margin-bottom:18px; background:var(--card); border:1px solid var(--hair); border-radius:999px; padding:3px 3px 3px 0}
+  .switch-lab{font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.06em; padding:0 12px 0 14px}
+  .switch a{font-size:12.5px; font-weight:700; color:var(--ink-soft); text-decoration:none; padding:6px 16px; border-radius:999px; transition:background .15s, color .15s}
+  .switch a:hover{color:var(--ink)}
+  .switch a.active{background:var(--signal); color:#fff}
+
+  /* ---- header ---- */
+  header.top{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1.5px solid var(--ink)}
+  .brand .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--signal); font-weight:700}
+  .brand h1{margin:.18em 0 .1em; font-size:25px; font-weight:700; letter-spacing:-.01em}
+  .brand .meta{font-size:12.5px; color:var(--ink-soft)}
+  .brand .meta b{color:var(--ink); font-weight:600}
+  .controls{display:flex; align-items:center; gap:10px}
+  .controls label{font-size:11px; color:var(--ink-soft); letter-spacing:.04em}
+  select#month{
+    font-family:inherit; font-size:14px; font-weight:600; color:var(--ink);
+    background:var(--card); border:1.5px solid var(--ink); border-radius:8px;
+    padding:8px 30px 8px 12px; cursor:pointer; appearance:none;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%2314213D'/></svg>");
+    background-repeat:no-repeat; background-position:right 11px center;
+  }
+  .reload{font-size:12px; color:var(--slate); border:1px dashed var(--slate-soft); border-radius:8px; padding:8px 12px; cursor:pointer; background:transparent; font-family:inherit}
+  .reload:hover{border-color:var(--slate); color:var(--ink)}
+  #file{display:none}
+
+  /* ---- section scaffolding ---- */
+  .sec{margin-top:34px}
+  .sec-head{display:flex; align-items:baseline; gap:10px; margin-bottom:14px}
+  .sec-head .idx{font-size:11px; font-weight:700; color:var(--slate); letter-spacing:.1em}
+  .sec-head h2{margin:0; font-size:15.5px; font-weight:700; letter-spacing:.01em}
+  .sec-head .note{font-size:11.5px; color:var(--muted); margin-left:auto}
+
+  /* ---- hero KPI ---- */
+  .hero{background:var(--card); border:1px solid var(--hair); border-radius:16px; padding:26px 28px 22px; box-shadow:0 1px 0 rgba(34,26,68,.03)}
+  .hero-main{display:flex; align-items:flex-end; gap:34px; flex-wrap:wrap}
+  .kpi-follow .lab{font-size:11.5px; font-weight:700; letter-spacing:.02em; color:var(--signal)}
+  .kpi-follow .big{font-size:54px; line-height:.94; font-weight:700; color:var(--signal); margin:.06em 0}
+  .kpi-follow.alt .big{color:var(--signal-deep)}
+  .kpi-follow .delta{font-size:13px; font-weight:600}
+  .kpi-follow .subnote{font-size:11.5px; color:var(--ink-soft); font-weight:600; margin-top:3px}
+  /* story KPI cards */
+  .kpirow{display:flex; gap:12px; flex-wrap:wrap}
+  .kpicard{flex:1 1 140px; background:var(--card); border:1px solid var(--hair); border-radius:12px; padding:14px 16px}
+  .kpicard .lab{font-size:11px; color:var(--ink-soft); font-weight:600}
+  .kpicard .v{font-size:24px; font-weight:700; line-height:1.1; margin-top:3px}
+  .kpicard.accent .v{color:var(--signal)}
+  .delta.up{color:var(--signal-deep)} .delta.down{color:var(--slate)} .delta.flat{color:var(--muted)}
+  .meridian{flex:1 1 120px; height:1.5px; background:linear-gradient(90deg,var(--signal-wash),var(--hair)); margin-bottom:30px; min-width:60px}
+  .kpi-sub{display:flex; gap:30px; flex-wrap:wrap}
+  .kpi-sub .item .lab{font-size:11.5px; color:var(--ink-soft); font-weight:600}
+  .kpi-sub .item .v{font-size:27px; font-weight:700; line-height:1.1; margin-top:2px}
+  .kpi-sub .item .d{font-size:11.5px; font-weight:600; margin-top:1px}
+  .hero-foot{display:flex; gap:34px; flex-wrap:wrap; margin-top:22px; padding-top:18px; border-top:1px solid var(--hair)}
+  .hero-foot .item .lab{font-size:11px; color:var(--muted); font-weight:600}
+  .hero-foot .item .v{font-size:18px; font-weight:700; color:var(--ink-soft)}
+
+  /* ---- plan hints ---- */
+  .plan{background:var(--ink); color:#fff; border-radius:14px; padding:20px 24px; margin-top:18px}
+  .plan h3{margin:0 0 6px; font-size:13px; letter-spacing:.06em; color:var(--signal); font-weight:700}
+  .plan ul{margin:8px 0 0; padding:0; list-style:none; display:grid; gap:9px}
+  .plan li{font-size:13.5px; line-height:1.5; padding-left:18px; position:relative; color:#EAE7F5}
+  .plan li::before{content:"→"; position:absolute; left:0; color:var(--signal); font-weight:700}
+  .plan li b{color:#fff}
+
+  /* ---- cards / charts ---- */
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  .panel{background:var(--card); border:1px solid var(--hair); border-radius:14px; padding:18px 20px}
+  .panel h3{margin:0 0 4px; font-size:14px; font-weight:700}
+  .panel .sub{font-size:11.5px; color:var(--muted); margin-bottom:12px}
+  .chartbox{position:relative; height:260px}
+  .chartbox.tall{height:340px}
+
+  /* ---- table ---- */
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{text-align:left; padding:9px 8px; border-bottom:1px solid var(--hair); vertical-align:middle}
+  th{font-size:10.5px; letter-spacing:.06em; color:var(--muted); font-weight:700; text-transform:uppercase}
+  td.n,th.n{text-align:right; font-variant-numeric:tabular-nums}
+  td.cap{max-width:340px; color:var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .rank{color:var(--signal); font-weight:700; width:22px}
+  .badge{display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:999px; white-space:nowrap}
+  .badge.reel{background:var(--signal-wash); color:var(--signal-deep)}
+  .badge.car{background:var(--slate-wash); color:var(--slate)}
+  .badge.img{background:#EFEDF4; color:var(--muted)}
+  td .fw{font-weight:700; color:var(--signal)}
+
+  .legend{display:flex; gap:14px; font-size:11.5px; color:var(--ink-soft); margin-top:8px; flex-wrap:wrap}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; vertical-align:-1px}
+
+  #srcbar{display:flex; align-items:center; gap:10px; margin-top:10px; font-size:11.5px; color:var(--slate); flex-wrap:wrap}
+  #srcbar .reload{padding:4px 10px; font-size:11px}
+  footer{margin-top:40px; font-size:11px; color:var(--muted); line-height:1.7; border-top:1px solid var(--hair); padding-top:16px}
+  .drop-hint{outline:3px dashed var(--signal); outline-offset:-6px}
+
+  @media (max-width:760px){
+    .grid2{grid-template-columns:1fr}
+    .kpi-follow .big{font-size:58px}
+    .meridian{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+
+  <nav class="switch" aria-label="アカウント切り替え">
+    <span class="switch-lab">アカウント</span>
+    <a href="index.html" data-acct="edubal_ib">edubal_ib</a>
+    <a href="edumore.html" data-acct="edubal_more">edubal_more</a>
+  </nav>
+
+  <header class="top">
+    <div class="brand">
+      <div class="eyebrow">Instagram Performance</div>
+      <h1>フォロワー獲得ダッシュボード</h1>
+      <div class="meta"><b id="acct">@edubal_ib</b> ・ 期間 <b id="range">—</b> ・ <b id="postcount">—</b>投稿</div>
+    </div>
+    <div class="controls">
+      <label for="month">表示する月</label>
+      <select id="month"></select>
+      <button class="reload" id="reloadBtn">CSVを手動で差し替え</button>
+      <input type="file" id="file" accept=".csv">
+    </div>
+  </header>
+
+  <div id="srcbar">
+    <span id="src">—</span>
+    <button id="refetchBtn" class="reload">↻ 最新を再取得</button>
+  </div>
+
+  <!-- 1. HERO -->
+  <section class="sec">
+    <div class="hero">
+      <div class="hero-main">
+        <div class="kpi-follow">
+          <div class="lab">アカウント全体での獲得フォロワー</div>
+          <div class="big num" id="h-acct">—</div>
+          <div class="delta" id="h-acct-d">&nbsp;</div>
+        </div>
+        <div class="kpi-follow alt">
+          <div class="lab">投稿による獲得フォロワー</div>
+          <div class="big num" id="h-follow">—</div>
+          <div class="delta" id="h-follow-d">&nbsp;</div>
+          <div class="subnote" id="h-share">&nbsp;</div>
+        </div>
+        <div class="meridian"></div>
+        <div class="kpi-sub">
+          <div class="item">
+            <div class="lab">フォロー転換率<span style="font-weight:400;color:var(--muted)"> (フォロー÷リーチ)</span></div>
+            <div class="v num" id="h-cvr">—</div>
+            <div class="d" id="h-cvr-d">&nbsp;</div>
+          </div>
+          <div class="item">
+            <div class="lab">1投稿あたり獲得</div>
+            <div class="v num" id="h-per">—</div>
+            <div class="d" id="h-per-d">&nbsp;</div>
+          </div>
+        </div>
+      </div>
+      <div class="hero-foot">
+        <div class="item"><div class="lab">合計リーチ</div><div class="v num" id="h-reach">—</div></div>
+        <div class="item"><div class="lab">合計ビュー</div><div class="v num" id="h-views">—</div></div>
+        <div class="item"><div class="lab">平均エンゲージメント率</div><div class="v num" id="h-eng">—</div></div>
+        <div class="item"><div class="lab">投稿数</div><div class="v num" id="h-posts">—</div></div>
+      </div>
+    </div>
+
+    <div class="plan">
+      <h3>次月プランニングのヒント（選択中の期間から自動生成）</h3>
+      <ul id="plan-list"></ul>
+    </div>
+  </section>
+
+  <!-- account-wide follower trend -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">01</span><h2>アカウント全体の獲得フォロワー数の推移</h2>
+      <span class="note" id="follower-note">—</span></div>
+    <div class="panel">
+      <div class="sub" style="margin-bottom:10px">投稿経由に限らない全流入の日次獲得数。薄い面＝日次、太線＝7日移動平均（トレンド）。</div>
+      <div class="chartbox" style="height:260px"><canvas id="followerChart"></canvas></div>
+    </div>
+  </section>
+
+  <!-- monthly trends -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">02</span><h2>月次の推移</h2>
+      <span class="note">公開月コホート ／ フォロー等の指標は累積（古い月ほど蓄積期間が長い）</span></div>
+    <div class="grid2">
+      <div class="panel">
+        <h3>月別フォロー獲得の推移</h3>
+        <div class="sub">棒＝獲得フォロー、線＝合計リーチ。</div>
+        <div class="chartbox" style="height:240px"><canvas id="trendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>月別投稿数（形式別）</h3>
+        <div class="sub">リール・カルーセル・画像の内訳。投下量と形式ミックスの推移を見る。</div>
+        <div class="chartbox" style="height:240px"><canvas id="postTypeChart"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- scatter -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">03</span><h2>勝ちパターン発見：リーチ × フォロー転換率</h2>
+      <span class="note">右上＝広く届き、かつフォローに繋がった投稿。バブル大＝獲得数大</span></div>
+    <div class="panel">
+      <div class="chartbox tall"><canvas id="scatterChart"></canvas></div>
+      <div class="legend">
+        <span><i style="background:var(--signal)"></i>リール</span>
+        <span><i style="background:var(--slate)"></i>カルーセル</span>
+        <span><i style="background:var(--slate-soft)"></i>画像</span>
+        <span style="color:var(--muted)">点線＝各軸の中央値（クリックでキャプション）</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- top posts -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">04</span><h2>投稿別の実績成果（獲得フォロー順）</h2>
+      <span class="note">選択中の月に投稿した全コンテンツ ／ 獲得フォロー降順</span></div>
+    <div class="panel" style="padding-top:8px">
+      <table>
+        <thead><tr>
+          <th></th>
+          <th>投稿（キャプション冒頭）</th>
+          <th>形式</th>
+          <th class="n">獲得<br>フォロー</th>
+          <th class="n">リーチ数</th>
+          <th class="n">転換率</th>
+          <th class="n">シェア数</th>
+          <th class="n">いいね数</th>
+          <th class="n">保存数</th>
+        </tr></thead>
+        <tbody id="top-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- stories -->
+  <section class="sec">
+    <div class="sec-head"><span class="idx">05</span><h2>ストーリーズの成果</h2>
+      <span class="note" id="stories-note">—</span></div>
+    <div class="kpirow" id="story-kpis"></div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="panel">
+        <h3>月別ストーリーズ本数とプロフィール遷移</h3>
+        <div class="sub">棒＝本数、線＝プロフィールへのアクセス（フォローへの導線）。</div>
+        <div class="chartbox"><canvas id="storyTrendChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <h3>アクション率（対リーチ）</h3>
+        <div class="sub">ストーリーズがどのアクションに効いているか。リーチを分母にした割合。</div>
+        <div class="chartbox"><canvas id="storyRatesChart"></canvas></div>
+      </div>
+    </div>
+    <div class="panel" style="margin-top:16px; padding-top:8px">
+      <table>
+        <thead><tr>
+          <th></th>
+          <th>ストーリーズ（公開日／冒頭）</th>
+          <th class="n">リーチ数</th>
+          <th class="n">ビュー</th>
+          <th class="n">プロフ<br>遷移</th>
+          <th class="n">リンク<br>クリック</th>
+          <th class="n">いいね数</th>
+          <th class="n">獲得<br>フォロー</th>
+        </tr></thead>
+        <tbody id="story-top-body"></tbody>
+      </table>
+      <div class="sub" style="margin-top:8px">※ リーチ上位10件を表示</div>
+    </div>
+  </section>
+
+  <footer id="footer"></footer>
+</div>
+
+<script>
+const SEED = [];
+
+/* このダッシュボードのアカウント（切り替えUIとヘッダー表示に使用） */
+const ACCOUNT = "edubal_more";
+(function(){
+  const a=document.getElementById('acct'); if(a) a.textContent='@'+ACCOUNT;
+  document.querySelectorAll('.switch a').forEach(x=>{ if(x.dataset.acct===ACCOUNT) x.classList.add('active'); });
+})();
+
+/* ---------- utils ---------- */
+const TYPES = {
+  'IGリール動画':{key:'reel', short:'リール', cls:'reel', color:'#6D48E5'},
+  'Instagramカルーセル':{key:'car', short:'カルーセル', cls:'car', color:'#6E76A8'},
+  'Instagram画像':{key:'img', short:'画像', cls:'img', color:'#AAA9CE'},
+};
+const DOW = ['日','月','火','水','木','金','土']; // JS getDay 0=Sun
+const fmt = n => (Math.round(n)).toLocaleString('ja-JP');
+const fmt1 = n => (Math.round(n*10)/10).toLocaleString('ja-JP',{minimumFractionDigits:1,maximumFractionDigits:1});
+const pct = n => (Math.round(n*1000)/10).toFixed(1)+'%';
+
+function parsePublish(s){
+  // MM/DD/YYYY HH:MM
+  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2})/);
+  if(!m) return null;
+  return new Date(+m[3], +m[1]-1, +m[2], +m[4], +m[5]);
+}
+function monthKey(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'); }
+function monthLabel(k){ const [y,m]=k.split('-'); return y+'年'+(+m)+'月'; }
+
+/* ---------- robust CSV parser (handles BOM, quoted commas & newlines) ---------- */
+function parseCSV(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const rows=[]; let row=[], field='', q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(q){
+      if(c==='"'){ if(text[i+1]==='"'){field+='"';i++;} else q=false; }
+      else field+=c;
+    }else{
+      if(c==='"') q=true;
+      else if(c===','){ row.push(field); field=''; }
+      else if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+      else if(c==='\r'){ /* skip */ }
+      else field+=c;
+    }
+  }
+  if(field.length||row.length){ row.push(field); rows.push(row); }
+  return rows;
+}
+function rowsFromCSV(text){
+  const raw=parseCSV(text).filter(r=>r.length>1);
+  if(!raw.length) return [];
+  const head=raw[0].map(h=>h.trim());
+  const idx=name=>head.findIndex(h=>h===name);
+  const ci={type:idx('投稿タイプ'),pub:idx('公開時間'),cap:idx('説明'),
+    views:idx('ビュー'),reach:idx('リーチ'),likes:idx('いいね！の数'),
+    shares:idx('シェア数'),follows:idx('フォロー数'),comments:idx('コメント数'),saves:idx('保存数')};
+  const num=v=>{const n=parseInt((v||'').replace(/[^\d-]/g,''),10); return isNaN(n)?0:n;};
+  const out=[];
+  for(let i=1;i<raw.length;i++){
+    const r=raw[i]; if(ci.pub<0||!r[ci.pub]) continue;
+    out.push({
+      type:r[ci.type], publish:r[ci.pub],
+      cap:(r[ci.cap]||'').replace(/\s+/g,' ').trim().slice(0,60),
+      views:num(r[ci.views]), reach:num(r[ci.reach]), likes:num(r[ci.likes]),
+      shares:num(r[ci.shares]), follows:num(r[ci.follows]),
+      comments:num(r[ci.comments]), saves:num(r[ci.saves]),
+    });
+  }
+  return out;
+}
+
+/* ---------- state ---------- */
+let DATA=[]; let CHARTS={};
+function prep(rows){
+  return rows.map(r=>{ const d=parsePublish(r.publish); return {...r,_d:d,_m:d?monthKey(d):'?'}; })
+             .filter(r=>r._d);
+}
+function months(){ return [...new Set(DATA.map(r=>r._m))].sort(); }
+function rowsIn(m){ return m==='ALL'?DATA:DATA.filter(r=>r._m===m); }
+
+function agg(rows){
+  const s=(k)=>rows.reduce((a,r)=>a+r[k],0);
+  const reach=s('reach'), follows=s('follows'), views=s('views');
+  const eng=rows.reduce((a,r)=>a+r.likes+r.comments+r.shares+r.saves,0);
+  return {n:rows.length, reach, views, follows,
+    cvr: reach? follows/reach : 0,
+    per: rows.length? follows/rows.length : 0,
+    eng: reach? eng/reach : 0};
+}
+
+/* ---------- render ---------- */
+function deltaHTML(cur, prev, kind){
+  if(prev==null) return '<span class="delta flat">前月比 —</span>';
+  if(prev===0) return cur>0?'<span class="delta up">前月比 新規</span>':'<span class="delta flat">前月比 —</span>';
+  const ch=(cur-prev)/prev*100;
+  const cls=ch>1?'up':ch<-1?'down':'flat';
+  const arrow=ch>1?'▲':ch<-1?'▼':'＝';
+  return `<span class="delta ${cls}">前月比 ${arrow}${Math.abs(Math.round(ch))}%</span>`;
+}
+
+function accountFollows(m){
+  if(!FOLLOWER_DATA.length) return null;
+  if(m==='ALL') return FOLLOWER_DATA.reduce((a,p)=>a+p.v,0);
+  return FOLLOWER_DATA.filter(p=>monthKey(p.d)===m).reduce((a,p)=>a+p.v,0);
+}
+function prevCalMonth(m){ const [y,mo]=m.split('-').map(Number); return monthKey(new Date(y,mo-2,1)); }
+
+function renderHero(m){
+  const cur=agg(rowsIn(m));
+  const ms=months(); let prev=null;
+  if(m!=='ALL'){ const i=ms.indexOf(m); if(i>0) prev=agg(rowsIn(ms[i-1])); }
+  // 投稿による獲得（投稿に紐づく分）
+  document.getElementById('h-follow').textContent=fmt(cur.follows);
+  document.getElementById('h-follow-d').innerHTML=deltaHTML(cur.follows, prev?prev.follows:null);
+  // アカウント全体での獲得（日次フォロワーCSVより）
+  const acct=accountFollows(m);
+  const acctPrev=(m==='ALL')?null:accountFollows(prevCalMonth(m));
+  document.getElementById('h-acct').textContent=(acct==null)?'—':fmt(acct);
+  document.getElementById('h-acct-d').innerHTML=(acct==null)?'<span class="delta flat">前月比 —</span>':deltaHTML(acct, acctPrev);
+  const shareEl=document.getElementById('h-share');
+  if(acct && acct>0){ shareEl.textContent='うち投稿経由 '+Math.round(cur.follows/acct*100)+'%'; }
+  else { shareEl.innerHTML='&nbsp;'; }
+  document.getElementById('h-cvr').textContent=pct(cur.cvr);
+  document.getElementById('h-cvr-d').innerHTML=deltaHTML(cur.cvr, prev?prev.cvr:null);
+  document.getElementById('h-per').textContent=fmt1(cur.per);
+  document.getElementById('h-per-d').innerHTML=deltaHTML(cur.per, prev?prev.per:null);
+  document.getElementById('h-reach').textContent=fmt(cur.reach);
+  document.getElementById('h-views').textContent=fmt(cur.views);
+  document.getElementById('h-eng').textContent=pct(cur.eng);
+  document.getElementById('h-posts').textContent=fmt(cur.n);
+}
+
+function renderPlan(m){
+  const rows=rowsIn(m); const ul=document.getElementById('plan-list'); ul.innerHTML='';
+  if(!rows.length){ul.innerHTML='<li>この期間のデータがありません。</li>';return;}
+  const tips=[];
+  // 1) best format by follows/post
+  const byType={};
+  rows.forEach(r=>{(byType[r.type]=byType[r.type]||[]).push(r);});
+  const typeStat=Object.entries(byType).map(([t,rs])=>({t,per:rs.reduce((a,r)=>a+r.follows,0)/rs.length,n:rs.length}))
+    .sort((a,b)=>b.per-a.per);
+  if(typeStat.length){
+    const best=typeStat[0], worst=typeStat[typeStat.length-1];
+    const sh=t=>TYPES[t]?TYPES[t].short:t;
+    let ratio = worst.per>0 ? (best.per/worst.per) : null;
+    tips.push(`獲得効率が最も高い形式は<b>${sh(best.t)}</b>（1投稿あたり<b>${fmt1(best.per)}フォロー</b>）`+
+      (ratio?`。<b>${sh(worst.t)}</b>の約<b>${fmt1(ratio)}倍</b>。来月は${sh(best.t)}の比率を上げるのが有効。`:'。'));
+  }
+  // 2) best day by avg follows
+  const byDay={};
+  rows.forEach(r=>{const d=r._d.getDay();(byDay[d]=byDay[d]||[]).push(r.follows);});
+  const dayStat=Object.entries(byDay).map(([d,a])=>({d:+d,avg:a.reduce((x,y)=>x+y,0)/a.length,n:a.length}))
+    .filter(x=>x.n>=1).sort((a,b)=>b.avg-a.avg);
+  if(dayStat.length>=2){
+    tips.push(`<b>${DOW[dayStat[0].d]}曜</b>の投稿が平均<b>${fmt1(dayStat[0].avg)}フォロー</b>で最も獲得につながっている。重要企画はこの曜日に。`);
+  }
+  // 3) top topic
+  const top=[...rows].sort((a,b)=>b.follows-a.follows)[0];
+  if(top&&top.follows>0){
+    tips.push(`最も獲得したのは「<b>${top.cap||'(キャプションなし)'}</b>」（${top.follows}フォロー）。この話題・切り口を展開する。`);
+  }
+  // 4) conversion benchmark
+  const a=agg(rows);
+  tips.push(`今期のフォロー転換率は<b>${pct(a.cvr)}</b>。リーチを“フォロー”に変える導線（プロフィール誘導・続きはフォロー等）を全投稿で点検。`);
+  tips.forEach(t=>{const li=document.createElement('li');li.innerHTML=t;ul.appendChild(li);});
+}
+
+function destroy(id){ if(CHARTS[id]){CHARTS[id].destroy(); delete CHARTS[id];} }
+const GRID={color:'#EBE9F2'}, TICK={color:'#463F63',font:{family:'inherit',size:11}};
+
+function renderTrend(){
+  const ms=months();
+  const follows=ms.map(m=>agg(rowsIn(m)).follows);
+  const reach=ms.map(m=>agg(rowsIn(m)).reach);
+  destroy('trend');
+  CHARTS.trend=new Chart(document.getElementById('trendChart'),{
+    data:{labels:ms.map(monthLabel),
+      datasets:[
+        {type:'bar',label:'獲得フォロー',data:follows,backgroundColor:'#6D48E5',borderRadius:5,yAxisID:'y',order:2},
+        {type:'line',label:'合計リーチ',data:reach,borderColor:'#6E76A8',backgroundColor:'#6E76A8',borderWidth:2,pointRadius:3,tension:.3,yAxisID:'y1',order:1}
+      ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{
+        y:{position:'left',grid:GRID,ticks:TICK,title:{display:true,text:'獲得フォロー',color:'#6D48E5',font:{size:10}}},
+        y1:{position:'right',grid:{display:false},ticks:TICK,title:{display:true,text:'リーチ',color:'#6E76A8',font:{size:10}}},
+        x:{grid:{display:false},ticks:TICK}
+      }}
+  });
+}
+
+/* ---------- account-wide daily followers (2nd source) ---------- */
+let FOLLOWER_DATA=[]; let FOLLOWER_SRC='';
+function parseFollowerRows(text){
+  if(text.charCodeAt(0)===0xFEFF) text=text.slice(1);
+  const raw=parseCSV(text).filter(r=>r.length>=2);
+  const out=[];
+  for(const r of raw){
+    const m=(r[0]||'').match(/(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+    if(!m) continue;                       // ヘッダー・空行は日付不一致でスキップ
+    let v=null;
+    for(let i=1;i<r.length;i++){ const n=parseInt((r[i]||'').replace(/[^\d-]/g,''),10); if(!isNaN(n)){v=n;break;} }
+    if(v==null) continue;
+    out.push({d:new Date(+m[1],+m[2]-1,+m[3]), v});
+  }
+  out.sort((a,b)=>a.d-b.d);
+  return out;
+}
+function loadFollowers(rows, srcLabel){
+  FOLLOWER_DATA=rows; if(srcLabel!=null) FOLLOWER_SRC=srcLabel;
+  renderFollowerTrend();
+  if(DATA.length) renderHero(currentMonth()); // アカウント全体の獲得をヒーローに反映
+}
+const dayKey=d=>d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+function renderFollowerTrend(){
+  const data=FOLLOWER_DATA;
+  const note=document.getElementById('follower-note');
+  if(!data.length){ if(note) note.textContent='データがありません'; destroy('follower'); return; }
+  const labels=data.map(p=>(p.d.getMonth()+1)+'/'+p.d.getDate());
+  const daily=data.map(p=>p.v);
+  const ma=daily.map((_,i)=>{ const s=Math.max(0,i-6); const seg=daily.slice(s,i+1);
+    return seg.reduce((a,b)=>a+b,0)/seg.length; });
+  const total=daily.reduce((a,b)=>a+b,0);
+  // 投稿日マーカー（投稿レベルデータDATAから日単位で集計）
+  const postByDay={};
+  DATA.forEach(r=>{ const k=dayKey(r._d); (postByDay[k]=postByDay[k]||[]).push(r); });
+  const markerData=data.map(p=> postByDay[dayKey(p.d)] ? p.v : null);
+  const markerCount=markerData.filter(x=>x!=null).length;
+  const f=d=>`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  if(note) note.textContent=`アカウント全体・全流入 ／ 期間 ${f(data[0].d)}–${f(data[data.length-1].d)} ／ 合計 ${fmt(total)}人 ／ 投稿日 ${markerCount}日`
+    + (FOLLOWER_SRC?` ／ ${FOLLOWER_SRC}`:'');
+  destroy('follower');
+  CHARTS.follower=new Chart(document.getElementById('followerChart'),{
+    data:{labels,datasets:[
+      {type:'line',label:'日次の獲得フォロワー',data:daily,
+        borderColor:'rgba(109,72,229,0.30)',backgroundColor:'rgba(109,72,229,0.09)',
+        borderWidth:1,pointRadius:0,fill:true,tension:.2,order:3},
+      {type:'line',label:'7日移動平均',data:ma,
+        borderColor:'#6D48E5',borderWidth:2.5,pointRadius:0,tension:.3,order:2},
+      {type:'line',label:'投稿日',data:markerData,showLine:false,spanGaps:false,
+        pointStyle:'rectRot',pointRadius:6,pointHoverRadius:8,
+        pointBackgroundColor:'#221A44',pointBorderColor:'#fff',pointBorderWidth:1.5,order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:14,usePointStyle:true}},
+        tooltip:{filter:item=>item.raw!=null,callbacks:{
+          title:items=>{const d=data[items[0].dataIndex].d; return (d.getMonth()+1)+'月'+d.getDate()+'日';},
+          label:c=>{
+            if(c.datasetIndex===2){
+              const ps=postByDay[dayKey(data[c.dataIndex].d)]||[];
+              const types=[...new Set(ps.map(r=>TYPES[r.type]?TYPES[r.type].short:r.type))].join('・');
+              return '投稿 '+ps.length+'件（'+types+'）';
+            }
+            return c.dataset.label+' '+(c.datasetIndex===1?fmt1(c.raw):fmt(c.raw))+'人';
+          }}}},
+      scales:{
+        x:{grid:{display:false},ticks:{...TICK,autoSkip:true,maxTicksLimit:8}},
+        y:{grid:GRID,beginAtZero:true,ticks:{...TICK,precision:0},
+           title:{display:true,text:'獲得フォロワー / 日',color:'#463F63',font:{size:10}}}
+      }}
+  });
+}
+async function loadFollowersFromSheet(url){
+  try{
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=parseFollowerRows(await res.text());
+    if(!rows.length) throw new Error('行を読み取れません');
+    loadFollowers(rows,'Sheets取得 '+new Date().toLocaleDateString('ja-JP'));
+  }catch(e){ console.warn('follower fetch failed:',e.message); }
+}
+
+/* ---------- Stories (3rd source) ---------- */
+let STORIES_DATA=[]; let STORIES_SRC='';
+function rowsFromStoriesCSV(text){
+  const raw=parseCSV(text).filter(r=>r.length>1);
+  if(!raw.length) return [];
+  const head=raw[0].map(h=>h.trim());
+  const idx=name=>head.findIndex(h=>h===name);
+  const ci={pub:idx('公開時間'),cap:idx('説明'),views:idx('ビュー'),reach:idx('リーチ'),
+    likes:idx('いいね！の数'),shares:idx('シェア数'),profile:idx('プロフィールへのアクセス'),
+    replies:idx('返信'),nav:idx('ナビゲーション'),follows:idx('フォロー数'),
+    link:idx('リンククリック'),sticker:idx('スタンプのタップ')};
+  const num=v=>{const n=parseInt((v||'').replace(/[^\d-]/g,''),10); return isNaN(n)?0:n;};
+  const out=[];
+  for(let i=1;i<raw.length;i++){
+    const r=raw[i]; if(ci.pub<0||!r[ci.pub]) continue;
+    out.push({publish:r[ci.pub], cap:(r[ci.cap]||'').replace(/\s+/g,' ').trim().slice(0,50),
+      views:num(r[ci.views]),reach:num(r[ci.reach]),likes:num(r[ci.likes]),shares:num(r[ci.shares]),
+      profile:num(r[ci.profile]),replies:num(r[ci.replies]),nav:num(r[ci.nav]),
+      follows:num(r[ci.follows]),linkClicks:num(r[ci.link]),stickerTaps:num(r[ci.sticker])});
+  }
+  return out;
+}
+function prepStories(rows){
+  return rows.map(r=>{ const d=parsePublish(r.publish); return {...r,_d:d,_m:d?monthKey(d):'?'}; }).filter(r=>r._d);
+}
+function storiesIn(m){ return m==='ALL'?STORIES_DATA:STORIES_DATA.filter(r=>r._m===m); }
+function storyMonths(){ return [...new Set(STORIES_DATA.map(r=>r._m))].sort(); }
+function loadStories(rows, srcLabel){
+  STORIES_DATA=prepStories(rows); if(srcLabel!=null) STORIES_SRC=srcLabel;
+  renderStories(currentMonth());
+}
+async function loadStoriesFromSheet(url){
+  try{
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('HTTP '+res.status);
+    const rows=rowsFromStoriesCSV(await res.text());
+    if(!rows.length) throw new Error('行を読み取れません');
+    loadStories(rows,'Sheets取得 '+new Date().toLocaleDateString('ja-JP'));
+  }catch(e){ console.warn('stories fetch failed:',e.message); }
+}
+function storyAgg(rows){
+  const s=k=>rows.reduce((a,r)=>a+r[k],0);
+  return {n:rows.length, reach:s('reach'), views:s('views'), profile:s('profile'),
+    linkClicks:s('linkClicks'), follows:s('follows'), likes:s('likes'),
+    stickerTaps:s('stickerTaps'), replies:s('replies')};
+}
+function renderStories(m){
+  const note=document.getElementById('stories-note');
+  const rows=storiesIn(m);
+  const a=storyAgg(rows);
+  // KPIカード
+  const box=document.getElementById('story-kpis');
+  if(box){
+    if(!rows.length){ box.innerHTML='<div class="kpicard"><div class="lab">この月のストーリーズはありません</div><div class="v">—</div></div>'; }
+    else{
+      const cards=[
+        ['ストーリーズ本数', fmt(a.n), ''],
+        ['合計リーチ', fmt(a.reach), ''],
+        ['プロフィールへのアクセス', fmt(a.profile), 'accent'],
+        ['リンククリック', fmt(a.linkClicks), ''],
+        ['獲得フォロー', fmt(a.follows), 'accent'],
+      ];
+      box.innerHTML=cards.map(([l,v,c])=>`<div class="kpicard ${c}"><div class="lab">${l}</div><div class="v num">${v}</div></div>`).join('');
+    }
+  }
+  if(note){
+    if(!STORIES_DATA.length){ note.textContent='データがありません'; }
+    else{
+      const sm=storyMonths();
+      note.textContent=`全期間 ${monthLabel(sm[0])}〜${monthLabel(sm[sm.length-1])} ／ 全${STORIES_DATA.length}本`
+        + (STORIES_SRC?` ／ ${STORIES_SRC}`:'');
+    }
+  }
+  renderStoryTrend();
+  renderStoryRates(m);
+  renderStoryTop(m);
+}
+function renderStoryTrend(){
+  const ms=storyMonths();
+  const cnt=ms.map(m=>storiesIn(m).length);
+  const profile=ms.map(m=>storyAgg(storiesIn(m)).profile);
+  destroy('storytrend');
+  const el=document.getElementById('storyTrendChart'); if(!el) return;
+  CHARTS.storytrend=new Chart(el,{
+    data:{labels:ms.map(monthLabel),datasets:[
+      {type:'bar',label:'本数',data:cnt,backgroundColor:'#6E76A8',borderRadius:5,yAxisID:'y',order:2},
+      {type:'line',label:'プロフィールへのアクセス',data:profile,borderColor:'#6D48E5',backgroundColor:'#6D48E5',borderWidth:2.5,pointRadius:3,tension:.3,yAxisID:'y1',order:1}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11},boxWidth:12}}},
+      scales:{
+        y:{position:'left',grid:GRID,ticks:{...TICK,precision:0},title:{display:true,text:'本数',color:'#6E76A8',font:{size:10}}},
+        y1:{position:'right',grid:{display:false},ticks:TICK,title:{display:true,text:'プロフ遷移',color:'#6D48E5',font:{size:10}}},
+        x:{grid:{display:false},ticks:TICK}
+      }}
+  });
+}
+function renderStoryRates(m){
+  const a=storyAgg(storiesIn(m));
+  const el=document.getElementById('storyRatesChart'); if(!el) return;
+  const rate=x=>a.reach? x/a.reach*100 : 0;
+  const labels=['プロフィール遷移率','リンククリック率','いいね率','フォロー率'];
+  const vals=[rate(a.profile),rate(a.linkClicks),rate(a.likes),rate(a.follows)];
+  destroy('storyrates');
+  CHARTS.storyrates=new Chart(el,{
+    type:'bar',
+    data:{labels,datasets:[{data:vals,backgroundColor:['#6D48E5','#9E82EE','#AAA9CE','#5433C4'],borderRadius:5}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw.toFixed(2)+'%（対リーチ）'}}},
+      scales:{x:{grid:GRID,ticks:{...TICK,callback:v=>v+'%'},beginAtZero:true},
+        y:{grid:{display:false},ticks:{...TICK,font:{size:11}}}}}
+  });
+}
+function renderStoryTop(m){
+  const rows=[...storiesIn(m)].sort((a,b)=>b.reach-a.reach).slice(0,10);
+  const tb=document.getElementById('story-top-body'); if(!tb) return;
+  tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const d=r._d, dl=(d.getMonth()+1)+'/'+d.getDate();
+    const label=r.cap?`${dl} ${r.cap}`:`${dl}（キャプションなし）`;
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td class="rank">${i+1}</td>
+       <td class="cap" title="${(label).replace(/"/g,'&quot;')}">${label}</td>
+       <td class="n">${fmt(r.reach)}</td>
+       <td class="n">${fmt(r.views)}</td>
+       <td class="n"><span class="fw">${fmt(r.profile)}</span></td>
+       <td class="n">${fmt(r.linkClicks)}</td>
+       <td class="n">${fmt(r.likes)}</td>
+       <td class="n">${fmt(r.follows)}</td></tr>`);
+  });
+}
+
+function renderPostTypeTrend(){
+  const ms=months();
+  const order=['IGリール動画','Instagramカルーセル','Instagram画像'];
+  const datasets=order.map(t=>({
+    label:TYPES[t].short,
+    data:ms.map(m=>rowsIn(m).filter(r=>r.type===t).length),
+    backgroundColor:TYPES[t].color, borderRadius:3, stack:'posts', maxBarThickness:54
+  }));
+  destroy('posttype');
+  CHARTS.posttype=new Chart(document.getElementById('postTypeChart'),{
+    type:'bar',
+    data:{labels:ms.map(monthLabel),datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom',labels:{font:{size:11},boxWidth:12,padding:14}},
+        tooltip:{callbacks:{
+          label:c=>c.dataset.label+' '+c.raw+'投稿',
+          footer:items=>'合計 '+items.reduce((a,i)=>a+i.raw,0)+'投稿'}}},
+      scales:{
+        x:{stacked:true,grid:{display:false},ticks:TICK},
+        y:{stacked:true,grid:GRID,beginAtZero:true,
+           ticks:{...TICK,precision:0},
+           title:{display:true,text:'投稿数',color:'#463F63',font:{size:10}}}
+      }}
+  });
+}
+
+function median(arr){ if(!arr.length)return 0; const s=[...arr].sort((a,b)=>a-b); const m=Math.floor(s.length/2);
+  return s.length%2?s[m]:(s[m-1]+s[m])/2; }
+
+const quadrantPlugin={
+  id:'quad',
+  beforeDraw(chart){
+    const {ctx,chartArea,scales}=chart; if(!chartArea)return;
+    const mx=chart.$mx, my=chart.$my; if(mx==null)return;
+    const px=scales.x.getPixelForValue(mx), py=scales.y.getPixelForValue(my);
+    ctx.save();
+    // shade winning quadrant (top-right)
+    ctx.fillStyle='rgba(109,72,229,0.06)';
+    ctx.fillRect(px,chartArea.top,chartArea.right-px,py-chartArea.top);
+    // median lines
+    ctx.strokeStyle='#C6C1D6'; ctx.setLineDash([4,4]); ctx.lineWidth=1;
+    ctx.beginPath();ctx.moveTo(px,chartArea.top);ctx.lineTo(px,chartArea.bottom);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(chartArea.left,py);ctx.lineTo(chartArea.right,py);ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle='#5433C4'; ctx.font='700 11px '+getComputedStyle(document.body).fontFamily;
+    ctx.textAlign='right'; ctx.fillText('勝ちゾーン', chartArea.right-8, chartArea.top+15);
+    ctx.restore();
+  }
+};
+
+function renderScatter(m){
+  const rows=rowsIn(m);
+  const mx=median(rows.map(r=>r.reach)), my=median(rows.map(r=>r.cvr?r.cvr:(r.reach?r.follows/r.reach:0)));
+  const maxF=Math.max(...rows.map(r=>r.follows),1);
+  const groups={};
+  rows.forEach(r=>{const k=r.type;(groups[k]=groups[k]||[]).push(r);});
+  const datasets=Object.entries(groups).map(([t,rs])=>({
+    label:TYPES[t]?TYPES[t].short:t,
+    backgroundColor:(TYPES[t]?TYPES[t].color:'#999')+'CC',
+    borderColor:TYPES[t]?TYPES[t].color:'#999', borderWidth:1,
+    data:rs.map(r=>({x:r.reach, y:r.reach?r.follows/r.reach*100:0,
+      r:5+Math.sqrt(r.follows/maxF)*22, _f:r.follows, _cap:r.cap, _reach:r.reach}))
+  }));
+  destroy('scatter');
+  const ch=new Chart(document.getElementById('scatterChart'),{
+    type:'bubble',
+    data:{datasets},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},
+        tooltip:{callbacks:{
+          title:items=>items[0].raw._cap||'(キャプションなし)',
+          label:c=>['獲得フォロー '+c.raw._f,'リーチ '+fmt(c.raw._reach),'転換率 '+c.raw.y.toFixed(2)+'%']
+        }}},
+      scales:{
+        x:{type:'linear',grid:GRID,ticks:{...TICK,callback:v=>fmt(v)},title:{display:true,text:'リーチ（届いた広さ）',color:'#463F63',font:{size:11}}},
+        y:{grid:GRID,ticks:{...TICK,callback:v=>v+'%'},title:{display:true,text:'フォロー転換率（刺さり）',color:'#463F63',font:{size:11}}}
+      }},
+    plugins:[quadrantPlugin]
+  });
+  ch.$mx=mx; ch.$my=my*100; CHARTS.scatter=ch; ch.update();
+}
+
+function renderTop(m){
+  const rows=[...rowsIn(m)].sort((a,b)=>b.follows-a.follows);
+  const tb=document.getElementById('top-body'); tb.innerHTML='';
+  rows.forEach((r,i)=>{
+    const ti=TYPES[r.type]||{short:r.type,cls:'img'};
+    const cvr=r.reach?(r.follows/r.reach*100).toFixed(2)+'%':'—';
+    tb.insertAdjacentHTML('beforeend',
+      `<tr><td class="rank">${i+1}</td>
+       <td class="cap" title="${(r.cap||'').replace(/"/g,'&quot;')}">${r.cap||'(キャプションなし)'}</td>
+       <td><span class="badge ${ti.cls}">${ti.short}</span></td>
+       <td class="n"><span class="fw">${fmt(r.follows)}</span></td>
+       <td class="n">${fmt(r.reach)}</td>
+       <td class="n">${cvr}</td>
+       <td class="n">${fmt(r.shares)}</td>
+       <td class="n">${fmt(r.likes)}</td>
+       <td class="n">${fmt(r.saves)}</td></tr>`);
+  });
+}
+
+function renderRange(){
+  const ds=DATA.map(r=>r._d).sort((a,b)=>a-b);
+  const f=d=>`${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()}`;
+  document.getElementById('range').textContent= ds.length? f(ds[0])+' – '+f(ds[ds.length-1]) : '—';
+  document.getElementById('postcount').textContent=DATA.length;
+  document.getElementById('footer').innerHTML=
+    `各行はInstagramのコンテンツ単位エクスポート（指標は<b>通算＝ライフタイム累積値</b>）です。月別は公開時間から判定したコホートで、古い月ほど数値の蓄積期間が長い点にご注意ください。`+
+    `<br>このダッシュボードは、ファイル冒頭の <b>SHEET_CSV_URL</b> に設定した「ウェブに公開」したGoogleスプレッドシートのCSVを読み込みます。シートを更新すれば、閲覧者が再取得した時点で最新になります。`+
+    `<br><b>公開範囲について：</b>「ウェブに公開」したCSVは、URLを知っていれば誰でも閲覧できる状態になります。キャプションや数値もこのHTMLを通じて公開されるため、外部に出したくない列はシートに含めないでください。`;
+}
+
+function currentMonth(){
+  const s=document.getElementById('month');
+  if(s && s.value) return s.value;
+  const ms=months(); return ms.length?ms[ms.length-1]:'ALL';
+}
+function renderAll(){
+  const m=document.getElementById('month').value;
+  renderHero(m); renderPlan(m); renderTrend(); renderPostTypeTrend();
+  renderScatter(m); renderTop(m); renderStories(m);
+}
+
+function buildMonthOptions(){
+  const sel=document.getElementById('month'); sel.innerHTML='';
+  months().forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=monthLabel(m);sel.appendChild(o);});
+  const all=document.createElement('option');all.value='ALL';all.textContent='全期間';sel.appendChild(all);
+  sel.value=months().length?months()[months().length-1]:'ALL'; // default: latest month
+}
+
+function load(rows){
+  DATA=prep(rows);
+  if(!DATA.length){alert('投稿データを読み取れませんでした。Instagramのコンテンツ別CSVかご確認ください。');return;}
+  buildMonthOptions(); renderRange(); renderAll();
+  if(FOLLOWER_DATA.length) renderFollowerTrend(); // 投稿日マーカーを最新のDATAに同期
+}
+
+/* ============================================================
+   データソース設定（公開ダッシュボードにする手順）
+   ① Googleスプレッドシートを開き、ファイル > 共有 > ウェブに公開
+      → 「カンマ区切り形式（.csv）」を選んで公開し、発行されたURL
+        （…/pub?…&output=csv の形）をコピー
+   ② 下の SHEET_CSV_URL に貼り付け（ダブルクォートの中）
+   ③ このHTMLを公開ホスティングに置く（Netlify Drop か GitHub Pages 等）
+      → 以降はシートを更新するだけで、誰でも最新版を閲覧できます
+   ※ URLの後ろに ?csv=（公開CSVのURL）を付けても上書きできます
+   ※ 空のままだと埋め込みサンプルデータを表示します
+   ============================================================ */
+const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdSjI6hzTY_w9SQ9zp9ipRN8egrN2s8X7HUj7BkziI4Jt6FnTwdrLlU5GBzik-5t8pGfZ_lk3GNB8y/pub?gid=0&single=true&output=csv"; // 公開CSVのURL
+
+/* 第2データソース：アカウント全体の「日次 獲得フォロワー数」CSV
+   （日付列 ＋ 日次フォロワー数 の2列）。同様に「ウェブに公開（CSV）」した
+   URLを貼り付けると差し替わります。空ならば埋め込みサンプルを表示します。 */
+const FOLLOWER_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdSjI6hzTY_w9SQ9zp9ipRN8egrN2s8X7HUj7BkziI4Jt6FnTwdrLlU5GBzik-5t8pGfZ_lk3GNB8y/pub?gid=931416063&single=true&output=csv"; // アカウント全体・日次フォロワーCSVの公開URL
+const FOLLOWER_SEED = [];
+
+/* 第3データソース：ストーリーズのコンテンツ別CSV（公開URL） */
+const STORIES_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRdSjI6hzTY_w9SQ9zp9ipRN8egrN2s8X7HUj7BkziI4Jt6FnTwdrLlU5GBzik-5t8pGfZ_lk3GNB8y/pub?gid=1706529161&single=true&output=csv";
+const STORIES_SEED = [];
+
+function setSource(label, ok){
+  const el=document.getElementById('src'); if(!el)return;
+  el.textContent=label;
+  el.style.color = ok ? 'var(--slate)' : 'var(--signal-deep)';
+}
+function activeUrl(){
+  return new URLSearchParams(location.search).get('csv') || SHEET_CSV_URL;
+}
+async function loadFromSheet(url){
+  setSource('スプレッドシートに接続中…', true);
+  try{
+    const res=await fetch(url,{cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text=await res.text();
+    const rows=rowsFromCSV(text);
+    if(!rows.length) throw new Error('行を読み取れませんでした');
+    load(rows);
+    setSource('接続中：Googleスプレッドシート ／ 取得 '+new Date().toLocaleString('ja-JP'), true);
+  }catch(e){
+    setSource('スプレッドシートを読み込めませんでした（'+e.message+'）。サンプルデータを表示中。', false);
+  }
+}
+
+/* ---------- events ---------- */
+document.getElementById('month').addEventListener('change',renderAll);
+document.getElementById('reloadBtn').addEventListener('click',()=>document.getElementById('file').click());
+document.getElementById('refetchBtn').addEventListener('click',()=>{
+  const u=activeUrl(); if(u) loadFromSheet(u); else document.getElementById('file').click();
+});
+document.getElementById('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>{ load(rowsFromCSV(rd.result));
+    setSource('手動で読み込んだファイル：'+f.name, true); }; rd.readAsText(f,'utf-8');
+});
+['dragover','dragenter'].forEach(ev=>document.body.addEventListener(ev,e=>{e.preventDefault();document.getElementById('app').classList.add('drop-hint');}));
+['dragleave','drop'].forEach(ev=>document.body.addEventListener(ev,e=>{e.preventDefault();document.getElementById('app').classList.remove('drop-hint');}));
+document.body.addEventListener('drop',e=>{
+  const f=e.dataTransfer.files[0]; if(!f)return;
+  const rd=new FileReader(); rd.onload=()=>{ load(rowsFromCSV(rd.result));
+    setSource('手動で読み込んだファイル：'+f.name, true); }; rd.readAsText(f,'utf-8');
+});
+
+/* ---------- init ---------- */
+(function init(){
+  if(SEED && SEED.length){ load(SEED); }               // 埋め込みサンプルがあれば即表示
+  else { setSource('公開シートからデータを読み込み中…', true); }
+  const u=activeUrl();
+  if(u){ loadFromSheet(u); }
+  else if(!(SEED&&SEED.length)){ setSource('公開シートのURLが未設定です', false); }
+  else { setSource('サンプルデータを表示中（公開シートのURL未設定）', true); }
+
+  // アカウント全体・日次フォロワー（第2ソース）
+  if(FOLLOWER_SEED && FOLLOWER_SEED.length){
+    loadFollowers(FOLLOWER_SEED.map(([d,v])=>({d:new Date(d+'T00:00:00'), v})), FOLLOWER_CSV_URL?'':'サンプル');
+  }
+  const fu=new URLSearchParams(location.search).get('followers') || FOLLOWER_CSV_URL;
+  if(fu) loadFollowersFromSheet(fu);
+
+  // ストーリーズ（第3ソース）
+  if(STORIES_SEED && STORIES_SEED.length){
+    loadStories(STORIES_SEED, STORIES_CSV_URL?'':'サンプル');
+  }
+  const su=new URLSearchParams(location.search).get('stories') || STORIES_CSV_URL;
+  if(su) loadStoriesFromSheet(su);
+})();
+</script>
+</body>
+</html>

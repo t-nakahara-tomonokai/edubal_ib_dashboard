@@ -23,6 +23,13 @@
   .wrap{max-width:1120px; margin:0 auto; padding:28px 22px 80px}
   .num{font-variant-numeric:tabular-nums; letter-spacing:-.01em}
 
+  /* account switcher */
+  .switch{display:inline-flex; align-items:center; gap:2px; margin-bottom:18px; background:var(--card); border:1px solid var(--hair); border-radius:999px; padding:3px 3px 3px 0}
+  .switch-lab{font-size:11px; color:var(--muted); font-weight:700; letter-spacing:.06em; padding:0 12px 0 14px}
+  .switch a{font-size:12.5px; font-weight:700; color:var(--ink-soft); text-decoration:none; padding:6px 16px; border-radius:999px; transition:background .15s, color .15s}
+  .switch a:hover{color:var(--ink)}
+  .switch a.active{background:var(--signal); color:#fff}
+
   /* ---- header ---- */
   header.top{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1.5px solid var(--ink)}
   .brand .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--signal); font-weight:700}
@@ -120,6 +127,12 @@
 </head>
 <body>
 <div class="wrap" id="app">
+
+  <nav class="switch" aria-label="アカウント切り替え">
+    <span class="switch-lab">アカウント</span>
+    <a href="index.html" data-acct="edubal_ib">edubal_ib</a>
+    <a href="edumore.html" data-acct="edubal_more">edubal_more</a>
+  </nav>
 
   <header class="top">
     <div class="brand">
@@ -288,6 +301,13 @@
 
 <script>
 const SEED = [{"type": "IGリール動画", "publish": "03/27/2026 03:00", "views": 3599, "reach": 2149, "likes": 35, "shares": 4, "follows": 2, "comments": 0, "saves": 25, "cap": "こんにちは！EDUBALのKaiです。  自分はpre IBの段階で、その時の興味関心や指導教員を軸にIB科目を選びまし"}, {"type": "Instagramカルーセル", "publish": "03/25/2026 02:00", "views": 3439, "reach": 1013, "likes": 32, "shares": 5, "follows": 0, "comments": 1, "saves": 14, "cap": "コア科目や過去問について、IB経験者が後輩に伝えたいこととは？📚 今回は、EDUBALでインターンとして働く元IB生の先"}, {"type": "IGリール動画", "publish": "06/22/2026 02:00", "views": 4679, "reach": 3216, "likes": 49, "shares": 17, "follows": 7, "comments": 2, "saves": 32, "cap": "東大に受かる時間管理術とは！？  IBは時間管理が命！！ と分かりつつ、ついついスマホ見てしまいますよね📱 そんなIB生"}, {"type": "IGリール動画", "publish": "06/19/2026 02:00", "views": 8552, "reach": 5992, "likes": 77, "shares": 34, "follows": 11, "comments": 0, "saves": 50, "cap": "Paperに苦手意識を持っていませんか？  IBのPaperは自分のセンスで書いてはいけません🙅‍♂️ criteria"}, {"type": "IGリール動画", "publish": "06/18/2026 01:50", "views": 24645, "reach": 15280, "likes": 295, "shares": 47, "follows": 4, "comments": 2, "saves": 40, "cap": "🏫仙台育英学園秀光コース生徒インタビュー  秀光中学校から仙台育英学園高校の秀光コース（IB）に進学された伊原さんにお話"}, {"type": "Instagramカルーセル", "publish": "06/16/2026 22:11", "views": 6210, "reach": 2385, "likes": 94, "shares": 34, "follows": 15, "comments": 0, "saves": 168, "cap": "「IBの勉強、何から手をつければいいか迷ってない？」  教科書や授業だけだと、どうしても情報が足りない…って感じることあ"}, {"type": "IGリール動画", "publish": "06/15/2026 02:00", "views": 13775, "reach": 9926, "likes": 89, "shares": 30, "follows": 17, "comments": 1, "saves": 50, "cap": "🎤AICJ高等学校IBコース ＼現役IB生に聞いてみた／  今回は広島県にあるAICJ高等学校のIBコース 高校3年生の"}, {"type": "IGリール動画", "publish": "06/12/2026 02:00", "views": 28863, "reach": 20045, "likes": 192, "shares": 66, "follows": 22, "comments": 4, "saves": 115, "cap": "🌎学内の公用語は日本語とEnglish  ＼国内のIB校を取材／  広島県にあるAICJ高等学校を取材！  世界の名門大"}, {"type": "Instagram画像", "publish": "06/10/2026 00:03", "views": 1185, "reach": 611, "likes": 6, "shares": 0, "follows": 1, "comments": 0, "saves": 2, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagram画像", "publish": "06/10/2026 00:02", "views": 1412, "reach": 740, "likes": 9, "shares": 0, "follows": 0, "comments": 0, "saves": 3, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagram画像", "publish": "06/10/2026 00:02", "views": 1231, "reach": 587, "likes": 6, "shares": 0, "follows": 0, "comments": 0, "saves": 3, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "Instagramカルーセル", "publish": "06/09/2026 18:57", "views": 3819, "reach": 1386, "likes": 15, "shares": 2, "follows": 1, "comments": 50, "saves": 16, "cap": "🤨 IB生の自分って、どんな入試方式を利用できるの？ 😞 出願スケジュールが分からない… こんなお悩みをお持ちのIB生の"}, {"type": "IGリール動画", "publish": "06/08/2026 02:00", "views": 10168, "reach": 7299, "likes": 104, "shares": 41, "follows": 27, "comments": 0, "saves": 51, "cap": "🏫岡山大学を直撃取材  15年間で189名のIB生が入学した「岡山大学」。 EDUBAでは、岡山大学がIB生に選ばれる理"}, {"type": "IGリール動画", "publish": "06/05/2026 02:00", "views": 6445, "reach": 4417, "likes": 47, "shares": 3, "follows": 4, "comments": 0, "saves": 15, "cap": "🎤岡山理科大学附属高校IBコース  ＼現役IB生に聞いてみた／  今回は岡山理科大学附属高等学校のIBコースの高校3年生"}, {"type": "Instagramカルーセル", "publish": "06/03/2026 02:00", "views": 5578, "reach": 2273, "likes": 40, "shares": 6, "follows": 7, "comments": 0, "saves": 31, "cap": "「IBの成績ってどうやって決まるんだっけ？」と、 成績評価の仕組みなどについて疑問に感じるIB生も少なくないのではないで"}, {"type": "IGリール動画", "publish": "06/01/2026 02:00", "views": 13139, "reach": 8630, "likes": 64, "shares": 21, "follows": 5, "comments": 0, "saves": 28, "cap": "💰DP取得で海外大学奨学金 ＼EDUBALが国内IB校を取材／  今回は岡山県にある岡山理科大学附属高等学校のIBコース"}, {"type": "IGリール動画", "publish": "05/29/2026 02:00", "views": 13205, "reach": 8470, "likes": 103, "shares": 36, "follows": 24, "comments": 2, "saves": 50, "cap": "現役ICU生に直撃🎤  ＼やりたいこと、学びたいことが多いIB生必見／  国内インターナショナルスクールでIBDPを修了"}, {"type": "Instagramカルーセル", "publish": "05/27/2026 02:00", "views": 6601, "reach": 2693, "likes": 79, "shares": 14, "follows": 13, "comments": 0, "saves": 98, "cap": "「IBの成績ってどうやって決まるんだっけ？」と、 成績評価の仕組みなどについて疑問に感じるIB生も少なくないのではないで"}, {"type": "Instagramカルーセル", "publish": "05/26/2026 02:00", "views": 5179, "reach": 1491, "likes": 23, "shares": 2, "follows": 0, "comments": 0, "saves": 15, "cap": "📣今年もIBDP対策オンライン夏期講習を開講！複数科目の受講で割引あり！🌞  こんなお悩みはありませんか？ 🤔夏休みのう"}, {"type": "IGリール動画", "publish": "05/25/2026 02:00", "views": 8591, "reach": 5618, "likes": 76, "shares": 67, "follows": 36, "comments": 5, "saves": 46, "cap": "EEのテーマで悩んでる人必見!!  EEのテーマってなかなか決めるの難しいですよね… 今回は同じように悩んだ元IB生が、"}, {"type": "IGリール動画", "publish": "05/22/2026 02:00", "views": 13967, "reach": 9924, "likes": 118, "shares": 82, "follows": 60, "comments": 5, "saves": 101, "cap": "5点上がるIBハックとは？？  元IB生が教えるIBハックは、もうみんなが使っているあのサイト!? 知っていても、どう使"}, {"type": "Instagramカルーセル", "publish": "05/20/2026 02:00", "views": 3778, "reach": 1426, "likes": 22, "shares": 0, "follows": 0, "comments": 0, "saves": 12, "cap": "医学部と聞くと、一般入試でも狭き門だという印象ですが、 実はIBDPで有利に受験できることはご存じですか？  「IBを使"}, {"type": "Instagramカルーセル", "publish": "05/18/2026 02:00", "views": 3322, "reach": 1209, "likes": 11, "shares": 0, "follows": 2, "comments": 0, "saves": 14, "cap": "IBDP履修中のみなさん注目！👀 今日はEDUBALが主催するIB生向けセミナーのお知らせです📣  IBDP履修中の生徒"}, {"type": "IGリール動画", "publish": "05/15/2026 02:00", "views": 8548, "reach": 5210, "likes": 84, "shares": 33, "follows": 13, "comments": 0, "saves": 57, "cap": "【衝撃】都立国際高校からIBスコア44点でケンブリッジ大学に合格した元IB生にインタビュー🎙️  ＼ハイスコアを狙ってい"}, {"type": "Instagramカルーセル", "publish": "05/14/2026 02:00", "views": 6654, "reach": 1597, "likes": 21, "shares": 4, "follows": 1, "comments": 0, "saves": 16, "cap": "IB生＆保護者の皆さんへ！📢 ＼今年も開催決定！／ 【IB生向け】オンライン大学説明会2026 🌏  毎年恒例となってい"}, {"type": "Instagramカルーセル", "publish": "05/13/2026 02:00", "views": 5556, "reach": 2175, "likes": 27, "shares": 8, "follows": 1, "comments": 0, "saves": 39, "cap": "医学部と聞くと、一般入試でも狭き門だという印象ですが、 実はIBDPで有利に受験できることはご存じですか？  「IBを使"}, {"type": "IGリール動画", "publish": "05/11/2026 02:00", "views": 10484, "reach": 6748, "likes": 99, "shares": 26, "follows": 11, "comments": 0, "saves": 32, "cap": "IB低くても慶應に合格⁉︎  IBで勉強が大変でも、ちゃんと寝てくださいね🛌 EDUBALは頑張るIB生を応援しています"}, {"type": "IGリール動画", "publish": "05/08/2026 02:00", "views": 27954, "reach": 21789, "likes": 142, "shares": 24, "follows": 48, "comments": 2, "saves": 87, "cap": "🏫IB生に大人気の上智大学を取材  5年で1,000人のIB生が出願すると言われている、IB生に非常に人気が高い上智大学"}, {"type": "Instagramカルーセル", "publish": "05/06/2026 02:00", "views": 3185, "reach": 1191, "likes": 15, "shares": 2, "follows": 0, "comments": 0, "saves": 9, "cap": "IBで身につくスキルがどのように将来活かせるか？📚  IBの授業で培うスキルや能力は、 IB生時代だけでなく、 大学生活"}, {"type": "IGリール動画", "publish": "05/04/2026 02:00", "views": 9420, "reach": 5819, "likes": 93, "shares": 61, "follows": 25, "comments": 0, "saves": 53, "cap": "IB卒業生が失敗談を赤裸々告白！🤫  みなさんはIBの勉強で悩んだ経験、ありますか？ コメント欄で教えてください！  —"}, {"type": "IGリール動画", "publish": "05/01/2026 02:00", "views": 12364, "reach": 7996, "likes": 119, "shares": 57, "follows": 32, "comments": 0, "saves": 71, "cap": "IB43点の㊙️勉強法を大公開！  みなさんはIBの勉強で悩んだ経験、ありますか？ コメント欄で教えてください！  ——"}, {"type": "IGリール動画", "publish": "04/29/2026 02:00", "views": 10316, "reach": 4816, "likes": 30, "shares": 10, "follows": 13, "comments": 0, "saves": 33, "cap": "2026年6月開催｜春のオープンキャンパスまとめ🌷  IB入試を実施している大学や、IB生に人気のある大学をピックアップ"}, {"type": "Instagramカルーセル", "publish": "04/22/2026 02:00", "views": 3552, "reach": 1207, "likes": 24, "shares": 2, "follows": 1, "comments": 0, "saves": 14, "cap": "大学入試でのIBDPのメリット/デメリットとは？📚 今回は、国内大学への進学を中心に、 IBが大学入試にどのように影響す"}, {"type": "Instagramカルーセル", "publish": "04/19/2026 23:00", "views": 8330, "reach": 2792, "likes": 33, "shares": 10, "follows": 0, "comments": 0, "saves": 24, "cap": "📣帰国大学入試の縮小にどう対応する？帰国生のための「総合型選抜」攻略セミナー  帰国生入試の縮小が続き、不安を感じている"}, {"type": "Instagramカルーセル", "publish": "04/14/2026 19:32", "views": 5954, "reach": 2118, "likes": 18, "shares": 2, "follows": 3, "comments": 0, "saves": 6, "cap": "🌎世界中で800人が受講している オンライン家庭教師EDUBALってどんなサービス❓  💁‍♀️お問合せは、「EDUBA"}, {"type": "Instagramカルーセル", "publish": "04/08/2026 02:00", "views": 3638, "reach": 1284, "likes": 31, "shares": 8, "follows": 0, "comments": 0, "saves": 30, "cap": "DP2年間の流れを紹介！ 【DP2年生編】 各科目どのようなスケジュールで進むかを理解しておこう👍  今回は、理系DP生"}, {"type": "Instagramカルーセル", "publish": "04/01/2026 02:00", "views": 4138, "reach": 1264, "likes": 30, "shares": 6, "follows": 1, "comments": 0, "saves": 36, "cap": "DP2年間の流れを紹介！ 【DP1年生編】 各科目どのようなスケジュールで進むかを理解しておこう👍  今回は、理系DP生"}, {"type": "IGリール動画", "publish": "03/30/2026 03:00", "views": 4562, "reach": 2641, "likes": 61, "shares": 12, "follows": 3, "comments": 0, "saves": 27, "cap": "【理工学生が感じる！IB Mathで役に立つトピック3選📘✨】  こんにちは！😆🫶 元IB生で、現在早稲田で理工学を学ぶ"}];
+
+/* このダッシュボードのアカウント（切り替えUIとヘッダー表示に使用） */
+const ACCOUNT = "edubal_ib";
+(function(){
+  const a=document.getElementById('acct'); if(a) a.textContent='@'+ACCOUNT;
+  document.querySelectorAll('.switch a').forEach(x=>{ if(x.dataset.acct===ACCOUNT) x.classList.add('active'); });
+})();
 
 /* ---------- utils ---------- */
 const TYPES = {
@@ -887,19 +907,24 @@ document.body.addEventListener('drop',e=>{
 
 /* ---------- init ---------- */
 (function init(){
-  load(SEED);                       // 投稿データ（サンプル or フォールバック）
+  if(SEED && SEED.length){ load(SEED); }               // 埋め込みサンプルがあれば即表示
+  else { setSource('公開シートからデータを読み込み中…', true); }
   const u=activeUrl();
   if(u){ loadFromSheet(u); }
+  else if(!(SEED&&SEED.length)){ setSource('公開シートのURLが未設定です', false); }
   else { setSource('サンプルデータを表示中（公開シートのURL未設定）', true); }
 
   // アカウント全体・日次フォロワー（第2ソース）
-  loadFollowers(FOLLOWER_SEED.map(([d,v])=>({d:new Date(d+'T00:00:00'), v})),
-                FOLLOWER_CSV_URL ? '' : 'サンプル');
+  if(FOLLOWER_SEED && FOLLOWER_SEED.length){
+    loadFollowers(FOLLOWER_SEED.map(([d,v])=>({d:new Date(d+'T00:00:00'), v})), FOLLOWER_CSV_URL?'':'サンプル');
+  }
   const fu=new URLSearchParams(location.search).get('followers') || FOLLOWER_CSV_URL;
   if(fu) loadFollowersFromSheet(fu);
 
   // ストーリーズ（第3ソース）
-  loadStories(STORIES_SEED, STORIES_CSV_URL ? '' : 'サンプル');
+  if(STORIES_SEED && STORIES_SEED.length){
+    loadStories(STORIES_SEED, STORIES_CSV_URL?'':'サンプル');
+  }
   const su=new URLSearchParams(location.search).get('stories') || STORIES_CSV_URL;
   if(su) loadStoriesFromSheet(su);
 })();
